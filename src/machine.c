@@ -58,7 +58,6 @@ static struct {
 
 static double now;           /* virtual time in PIT counts */
 static uint32_t frames;
-static uint8_t opl_idx;
 
 uint32_t mach_frames(void) { return frames; }
 double mach_time(void) { return now; }
@@ -154,7 +153,7 @@ void io_out8(uint16_t port, uint8_t v)
         if (v == 0x20 || (v >= 0x60 && v <= 0x67)) pic.in_service = false;   /* (specific) end of interrupt */
         break;
     case 0x21: pic.mask = v; break;
-    case 0x388: opl_idx = v, opl2_write_index(v); break;   /* the AdLib (src/sound/opl2.c) */
+    case 0x388: opl2_write_index(v); break;   /* the AdLib (src/sound/opl2.c) */
     case 0x389: opl2_write_data(v); break;
     case 0x42: case 0x61: speaker_out(port, v); break;     /* the PC speaker (src/sound/speaker.c) */
     default: break;
