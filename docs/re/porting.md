@@ -144,6 +144,18 @@ picture in four differs). The port's steps take no time, so its ticks all fall i
 that mixes a tick wait with a free-running counter has this; it is the frame model's (architecture.md),
 not a port error.
 
+A failed qualifier (`out/over_keys.txt`: no pedal at all, Enter every 200 frames from 2000; 12,000
+frames): the Powerboats qualifier with player 1 standing at the start, FAILED TO QUALIFY
+(`Menu_LivesMessage` 1000:1c1b), back to the character picker and round again. 2024 of the port's 2111
+pictures appear in the original's sequence in order. Besides the load time and the beat, one Enter is
+lost in the original: it lands on the frame where FAILED TO QUALIFY flips its face, and
+`Menu_WaitKeyBlink` (1000:17ff) clears the last-pressed byte `[107f]` at each call, while `Key_Irq`
+records a release only for the key last pressed since then. A press that falls in the redraw between two
+calls is dropped (the original's rule; the harness's redraw takes emulated time, the port's none), so
+the original waits for the next Enter and runs 200 frames behind from there. After the next pick the
+character picker's WHO DO YOU WANT TO BE ? is left drawn in the original and cleared in the port: the
+blink flag's phase again (checked with `--shot-at`).
+
 The port alone plays the whole championship this way (`out/full_keys.txt`, 60,000 frames): the races to
 the last, "WIN THIS RACE TO BE CHAMPION", CHAMPIONSHIP WINNER!! and back to SELECT GAME, with no
 PENDING_NOTE. The two-player tournament cannot be driven like this: with player 1's laps cleared a race
