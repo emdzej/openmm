@@ -113,3 +113,8 @@ phase (player 1's car shown in one and not the other, checked with `--shot-at`).
 inside a race: Enter is player 1's select key there, and it lands at another moment of each.
 `--poke-when cond/writes` (run.py and mm_run alike) tests the condition bytes at each frame's end and
 writes once.
+
+GAME OPTIONS' screens (`out/options_keys.txt`: F6 the credits and a key back, F4 twice, F3, F5 REDEFINE
+KEYS with ten letters 60 frames apart, Enter; 2,600 frames): all 21 of the port's distinct pictures
+appear in the original's sequence in order (`Menu_GameOptions` 1000:2770, `Menu_Credits` 1000:2a82,
+`Menu_RedefineKeys` 1000:92f0).
