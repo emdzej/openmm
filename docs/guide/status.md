@@ -12,16 +12,17 @@ OpenMM **runs the game's menus and races, with sound**. As of 10 November 2026:
 - **The game.** All of the program's code that runs has been rewritten in C: the title and attract
   screens, the game options, the one- and two-player menus, the character picker, the race set-up and
   track loading, the vehicles, the computer drivers, the terrain, the race loop and its rules. In a
-  headless run the port goes from the title through the menus into a qualifying race, and into a
-  two-player race, and drives in them.
+  headless run the port plays a whole one-player championship, from the qualifier through the
+  challenge races, the bonus races and the results to CHAMPIONSHIP WINNER, and two-player races.
 - **Sound.** The game's two sound drivers, for the Sound Blaster's AdLib chip and for the PC speaker,
   are rewritten too. They drive a model of the AdLib's sound chip written for the port, and a model of
   the speaker. The music and effects the drivers send to the chip match the original's, write for write.
 - **How it is checked.** Each routine is run against recordings of the original program: the same
   memory, registers, port accesses and DOS calls. 151 routines pass so far; the others are not yet
   reached by the recorded runs, or wait for the timer. Those are checked by comparing whole runs picture
-  by picture: a two-player game and a one-player qualifying race give the original's pictures in the
-  original's order, apart from differences traced to the reference emulator's timing.
+  by picture: a two-player game, a qualifying race and 16,000 frames of a championship give the
+  original's pictures in the original's order, apart from differences traced to the reference
+  emulator's timing.
 
 ## In the browser
 
@@ -37,7 +38,8 @@ the game finds it, calibrates it with F7 on GAME OPTIONS and plays with it as JO
 
 ## Not yet
 
-- Championships and every track theme still need checking against the original.
+- The two-player tournament and the championship's last races still need comparing with the original
+  whole; their routines are checked one by one.
 - The AdLib model is the port's own; it has not yet been compared with a real chip's recordings.
 - There are no releases yet.
 

@@ -143,3 +143,9 @@ counts it, the next wait still waits for a new tick, and the face flips a step e
 picture in four differs). The port's steps take no time, so its ticks all fall in the waits. Any loop
 that mixes a tick wait with a free-running counter has this; it is the frame model's (architecture.md),
 not a port error.
+
+The port alone plays the whole championship this way (`out/full_keys.txt`, 60,000 frames): the races to
+the last, "WIN THIS RACE TO BE CHAMPION", CHAMPIONSHIP WINNER!! and back to SELECT GAME, with no
+PENDING_NOTE. The two-player tournament cannot be driven like this: with player 1's laps cleared a race
+goes to its play-off and no one scores; with only player 1 driving, the helicopters' race (theme 8)
+leaves both on screen against a wall. It needs steering keyed to the race, not to frames.
