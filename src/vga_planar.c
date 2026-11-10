@@ -177,7 +177,7 @@ bool vga_planar_render(uint8_t mode, const uint8_t *attr, const uint8_t *crtc, u
     default: return false;
     }
     uint16_t start = (uint16_t)(crtc[0x0c] << 8 | crtc[0x0d]);
-    int pitch = crtc[0x13] * 2 ? crtc[0x13] * 2 : *w / 8;
+    int pitch = crtc[0x13] ? crtc[0x13] * 2 : *w / 8;
     uint8_t amap[16];
     for (int c = 0; c < 16; c++) amap[c] = attr[c] & 0x3f;
     for (int y = 0; y < *h; y++) {
