@@ -1,2 +1,3 @@
 # addr	name	module	confidence	description
 1000:0006	Start	main	high	the entry: a start-up check, DS = 193c, SS:SP = 7d78:03e8, mode 13h, then the loop of 1000:0100 and 1000:0220; on the way out the video mode back and int 21h 4c00
+1000:7a75	Copy_Patch32	video	medium	patches the copy loop at 1000:91a4 to move doublewords (66 a5, movsd, written over its four movsw) and sets cs:[92d9] = 40h, cs:[92dc] = a566h; all registers kept

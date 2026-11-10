@@ -32,9 +32,10 @@ depends on it.
 segments, the sound driver's segment, the stack. The port keeps one real-mode memory, 1 MB as DOS
 addresses it, with the unpacked image at 1000:0000 and the data segment initialised from it, so that
 segment arithmetic, buffer overlaps and out-of-bounds reads behave as in the original. Ported functions
-read and write it through typed accessors (`mem_u8(seg, off)`, ...) and named globals for the data
-segment's variables (`DS_VAR(0x107e)` style, each with its address). Registers that carry values between
-hand-written routines (flags such as carry as a return value) become parameters and return values.
+read and write it through typed accessors (`mb(seg, off)`, `d16(0x107e)` for the data segment, `c8` for
+the code segment's own variables: `src/mem.h`). The registers that carry values between hand-written
+routines are kept exactly: every routine leaves the register file `R` (`src/cpu.h`) as the original
+leaves the CPU's registers, so routines port and check one at a time (docs/re/porting.md).
 
 **The machine.** Ported as device models in the core, behind `src/platform.h`:
 
@@ -49,7 +50,10 @@ hand-written routines (flags such as carry as a return value) become parameters 
 - Sound: the driver's interface (AH functions) with the driver ported too, over a model of the AdLib's
   OPL2 and of the speaker.
 
-**The frame.** gasm calls the module once per frame; the original waits in its own loops (for the timer,
-for the retrace). Which of the two ENCORE shapes fits is decided in step 1 when `Start`'s loops are read:
-state machines stepped per frame, or `gasm_main` with `gasm_wait_frame` at the original's wait points
-(gasm's LOOP build). Either way the number and order of presents and timer reads are the original's.
+**The frame.** The original waits in its own loops, for its timer's counters and for the retrace, and its
+timer handler is locked to the retrace (it reprograms the PIT on every tick to fire just before it). So
+the port keeps the loops (gasm's LOOP build: `gasm_main` runs `Start`, `plat_wait_frame` returns to the
+runner): the frame boundary is the retrace's start, 70.086 times a second, where the screen is shown and
+the program's IRQ 0 handler runs, then its IRQ 1 handler once per key event (`src/machine.c`). Each wait
+of the original is a `mach_frame()` or one of the retrace waits of `src/vga.h`. The CPU is instant: time
+passes only at the boundaries, so the PIT counts the game measures are whole frames.

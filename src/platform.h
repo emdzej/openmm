@@ -44,7 +44,12 @@ bool plat_gamepad(int slot, PlatGamepad *g);
 int plat_key_events(uint16_t *codes, int cap);
 /* Launch parameter (gasm --param / URL query); false if unset. */
 bool plat_param(const char *name, char *dst, size_t cap);
-/* Calls per second of app_frame from now on; the audio per frame follows. */
+/* Ends a frame: the runner shows the last present, plays a frame of sound (app_audio) and samples input;
+   returns at the next frame. Called only from inside app_main's call tree. */
+void plat_wait_frame(void);
+/* The program ended (DOS's int 21h 4Ch): app_exit, then the process ends with code. */
+void plat_exit(int code);
+/* Frames per second from now on; the audio per frame follows. */
 void plat_set_frame_rate(double hz);
 /* Show an 8-bit frame: w x h indices, pitch bytes per row, through pal (256 x RGB, 8 bits per channel;
    the VGA DAC's 6-bit values are the caller's to widen). Shown at 4:3, as a 320 x 200 mode is on a CRT.

@@ -1,17 +1,15 @@
-/* The application (see app.h). Step 0 of docs/re/port-plan.md: the exe is found, checked and unpacked,
-   and a blank 320 x 200 frame is shown. MICRO.COM's order (SM.EXE, then MICRO.EXE) and the program's
-   own start-up come next. */
+/* The application (app.h): the exe found, checked and unpacked, then loaded as DOS loads it (mem.c), the
+   machine reset (machine.c) and the program run from its entry, Start (1000:0006). MICRO.COM's order
+   (SM.EXE first) comes with step 4 of docs/re/port-plan.md. */
 #include "app.h"
+#include "cpu.h"
 #include "exe.h"
-#include "pending.h"
+#include "machine.h"
+#include "mem.h"
 #include "platform.h"
+#include "routines.h"
 #include <stdio.h>
 #include <string.h>
-
-enum { SCREEN_W = 320, SCREEN_H = 200 };
-
-static uint8_t screen[SCREEN_W * SCREEN_H];   /* VGA memory at A000:0000 in mode 13h */
-static uint8_t dac[768];                     /* the palette, widened to 8 bits */
 
 bool app_init(void)
 {
@@ -28,11 +26,16 @@ bool app_init(void)
     return true;
 }
 
-bool app_frame(void)
+int app_main(void)
 {
-    PENDING_NOTE(0x10000006, "Start");   /* the program's entry, 1000:0006 */
-    plat_present(screen, SCREEN_W, SCREEN_H, SCREEN_W, dac);
-    return true;
+    mem_load_program();
+    mach_reset();
+    const ExeEntry *e = exe_entry();
+    memset(&R, 0, sizeof R);
+    R.ds = R.es = SEG_PSP, R.ss = e->ss, R.sp = e->sp;
+    Start();
+    plat_exit(0);   /* not reached: the program ends through int 21h 4Ch */
+    return 0;
 }
 
 void app_audio(float *stereo, unsigned frames) { memset(stereo, 0, (size_t)frames * 2 * sizeof *stereo); }

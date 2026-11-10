@@ -39,13 +39,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # The SDK version lives in tools/fetch-gasm-sdk.sh (GASM_VERSION).
-      - name: fetch wasi-sdk and the gasm C SDK
+      - name: fetch wasi-sdk, the gasm C SDK and wasm-opt
         run: tools/fetch-gasm-sdk.sh
       - name: configure (gasm)
         run: >-
           cmake -S . -B build-gasm -DOPENMM_PLATFORM=gasm -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-Werror
           -DCMAKE_TOOLCHAIN_FILE=.deps/gasm-c-sdk/cmake/gasm-toolchain.cmake
           -DWASI_SDK_PREFIX="$PWD/.deps/wasi-sdk"
+          -DGASM_WASM_OPT="$PWD/.deps/binaryen/bin/wasm-opt"
       - name: build openmm.wasm
         run: |
           cmake --build build-gasm -j

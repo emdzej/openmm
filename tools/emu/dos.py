@@ -141,6 +141,9 @@ class Machine:
         self._setup_memory(open(exe_path, 'rb').read(), cmdline)
         self.bios_keys = []          # (scan, ascii) in the BIOS keyboard buffer
         self.code_card = False       # answer FONT.BIN's code-card check (reference runs only)
+        self.irq_hold = False        # no interrupts delivered (tools/emu/capture.py, while recording one routine)
+        self.on_io = None            # callback(kind 'I'/'O', port, value) for every port access
+        self.on_int = None           # callback(n, phase 'pre'/'post') around every serviced int
         self.mu.hook_add(unicorn.UC_HOOK_INTR, self._intr)
         self.mu.hook_add(unicorn.UC_HOOK_CODE, self._bios_stub, None, BIOS_SEG * 16, BIOS_SEG * 16 + 255)
         self.mu.hook_add(unicorn.UC_HOOK_CODE, self._card, None, 0x24240 + 0xab, 0x24240 + 0x13a)
@@ -239,8 +242,13 @@ class Machine:
         for n in range(256):
             self.wr(n * 4, struct.pack('<HH', n, BIOS_SEG))
         self.wr(BIOS_SEG * 16, b'\xcf' * 256)
-        # BIOS data: the video mode, columns, the timer count
+        # BIOS data: the video mode, columns, the CRTC's port (0040:0063, which the game reads to find
+        # 3DAh), the rows, the equipment word (a VGA, no game port)
         self.wr(0x449, b'\x03')
+        self.wr(0x44a, struct.pack('<H', 80))
+        self.wr(0x463, struct.pack('<H', 0x3d4))
+        self.wr(0x484, b'\x18')
+        self.wr(0x410, struct.pack('<H', 0x0021))
         env = b'COMSPEC=C:\\COMMAND.COM\0PATH=C:\\\0\0' + b'\x01\0' + b'C:\\MICROM\\' + \
             self._exe_name.encode() + b'\0'
         self.wr(ENV_SEG * 16, env)
@@ -321,7 +329,7 @@ class Machine:
             elif self.key_queue and 1 not in self.irq_pending:
                 self.port60 = self.key_queue.pop(0)
                 self.irq_pending.add(1)
-            if self.r('FLAGS') & 0x200 and not self.in_service:
+            if self.r('FLAGS') & 0x200 and not self.in_service and not self.irq_hold:
                 for irq in (0, 1):
                     if irq in self.irq_pending and not (self.pic_mask >> irq) & 1:
                         self.irq_pending.discard(irq)
@@ -378,6 +386,8 @@ class Machine:
             v = 0xff                       # no joystick: buttons up, axes timed out
         elif port == 0x388:
             v = 0x00
+        if self.on_io:
+            self.on_io('I', port, v)
         return v
 
     def _out(self, mu, port, size, value, _):
@@ -386,6 +396,8 @@ class Machine:
             self._out(mu, port, 1, value & 0xff, None)
             self._out(mu, port + 1, 1, value >> 8, None)
             return
+        if self.on_io:
+            self.on_io('O', port, value)
         if port == 0x3c8:
             self.dac_w = value * 3
         elif port == 0x3c7:
@@ -427,7 +439,7 @@ class Machine:
                 self.pit_lo = None
                 self.pit_last = self.ticks
         elif port == 0x20:
-            if value == 0x20:
+            if value == 0x20 or 0x60 <= value <= 0x67:   # end of interrupt, non-specific or specific
                 self.in_service = False
         elif port == 0x21:
             self.pic_mask = value
@@ -439,6 +451,15 @@ class Machine:
     # ---------------------------------------------------------------- interrupts
 
     def _intr(self, mu, intno, _):
+        if self.on_int:
+            self.on_int(intno, 'pre')
+        try:
+            self._serve(mu, intno)
+        finally:
+            if self.on_int:
+                self.on_int(intno, 'post')
+
+    def _serve(self, mu, intno):
         ah = self.r('AX') >> 8
         try:
             if intno == 0x21:

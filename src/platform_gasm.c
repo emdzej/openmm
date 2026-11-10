@@ -1,5 +1,7 @@
 /* gasm platform backend for openmm.wasm (gasm ABI 0, video_present, raw keyboard). The only file that
-   includes gasm.h. Exports: gasm_init (mount the data, app_init), gasm_frame (app_frame), gasm_exit.
+   includes gasm.h. The game keeps the original's own loops (gasm_loop.h, gasm_add_game LOOP):
+   gasm_loop_init mounts the data and runs app_init, gasm_main runs app_main, plat_wait_frame returns to
+   the runner between frames.
 
    Game data (the first that has MICRO.EXE):
    - the floppy image as asset `disk` (gasm-run --asset disk=disk1.img: FAT12, read through
@@ -13,6 +15,7 @@
 #include "platform.h"
 #include "vfs.h"
 #include <gasm.h>
+#include <gasm_loop.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -338,9 +341,8 @@ static bool mount_game(void)
     return false;
 }
 
-/* ---- exports ---- */
+/* ---- the loop ---- */
 
-static bool running;
 static double audio_acc;   /* fractional audio frames carried between frames */
 
 double plat_ms(void)
@@ -350,9 +352,29 @@ double plat_ms(void)
     return ts.tv_sec * 1000.0 + ts.tv_nsec / 1e6;
 }
 
-GASM_EXPORT("gasm_abi_version") int32_t mm_gasm_abi_version(void) { return GASM_ABI_VERSION; }
+/* The game keeps the original's loops (gasm_loop.h): gasm_main runs app_main, and every wait of the
+   original for its timer ends a frame here. The sound for one frame of the rate in effect. */
+void plat_wait_frame(void)
+{
+    static float audio_buf[4096 * 2];
+    audio_acc += APP_AUDIO_RATE / frame_hz;
+    unsigned n = (unsigned)audio_acc;
+    if (n > 4096) n = 4096;
+    audio_acc -= n;
+    app_audio(audio_buf, n);
+    gasm_audio_push(audio_buf, n);
+    gasm_wait_frame();
+    for (uint32_t p = 0; p < 4; p++) pads[p] = gasm_input_pad(p);
+    poll_key_events();
+}
 
-GASM_EXPORT("gasm_init") int32_t mm_gasm_init(void)
+void plat_exit(int code)
+{
+    app_exit();
+    exit(code);
+}
+
+int gasm_loop_init(void)
 {
     gasm_set_frame_rate(APP_FRAME_HZ);
     gasm_audio_config(APP_AUDIO_RATE, 2);
@@ -368,39 +390,14 @@ GASM_EXPORT("gasm_init") int32_t mm_gasm_init(void)
     char m[640];
     snprintf(m, sizeof m, "OpenMM: game data from %s", vfs_describe());
     plat_log(m);
-    if (!app_init()) return 1;
-    running = true;
-    return 0;
+    return app_init() ? 0 : 1;
 }
 
-GASM_EXPORT("gasm_frame") void mm_gasm_frame(void)
+int gasm_main(void)
 {
-    static float audio_buf[2048 * 2];
-    if (!running) return;
     for (uint32_t p = 0; p < 4; p++) pads[p] = gasm_input_pad(p);
     poll_key_events();
-    if (!app_frame()) {
-        running = false;
-        app_exit();
-        __wasi_proc_exit(0);
-    }
-    /* The sound for the time since the previous frame (the runner's clock), as OpenCMR2's: a frame rate
-       that drifts from the one asked for keeps the queue at its level; headless the clock is the frames'
-       own. At most the buffer: a longer gap is lost. */
-    double now = gasm_time_ms();
-    static double last_ms = -1;
-    audio_acc += 0 <= last_ms ? (now - last_ms) * APP_AUDIO_RATE / 1000.0 : APP_AUDIO_RATE / frame_hz;
-    last_ms = now;
-    if (audio_acc > 2048) audio_acc = 2048;
-    unsigned n = (unsigned)audio_acc;
-    audio_acc -= n;
-    app_audio(audio_buf, n);
-    gasm_audio_push(audio_buf, n);
+    return app_main();
 }
 
-GASM_EXPORT("gasm_exit") void mm_gasm_exit(void)
-{
-    if (!running) return;
-    running = false;
-    app_exit();
-}
+void gasm_loop_exit(void) { app_exit(); }
