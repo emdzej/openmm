@@ -135,3 +135,11 @@ pokes, so that every race ends at its start and no key reaches a race:
 while a car accelerates changes the race.) Over 16,000 frames, 2613 of the port's 2850 pictures appear
 in the original's sequence in order: the qualifier, the challenge races, the bonus race, the results
 and EXTRA LIFE screens.
+The rest traced: the beat, the load time and the start's blink, as above, and one effect of the port's
+instant CPU. `Menu_LivesMessage` (1000:1c1b) steps every five `Sys_WaitTick`s and flips the face's
+flash when `[0002]` has passed 0Fh. In the harness, as on a real machine, a tick can fall while a step
+draws and presents (a 64,000-byte copy to the VGA takes a good part of a frame on an ISA card): `[0002]`
+counts it, the next wait still waits for a new tick, and the face flips a step early (EXTRA LIFE: one
+picture in four differs). The port's steps take no time, so its ticks all fall in the waits. Any loop
+that mixes a tick wait with a free-running counter has this; it is the frame model's (architecture.md),
+not a port error.
