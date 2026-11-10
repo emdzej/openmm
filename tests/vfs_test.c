@@ -23,11 +23,15 @@ static void on_entry(const char *name, bool is_dir, void *user)
 {
     Walk *w = user;
     char path[128];
-    snprintf(path, sizeof path, "%s%s%s", w->dir, w->dir[0] ? "/" : "", name);
+    if (snprintf(path, sizeof path, "%s%s%s", w->dir, w->dir[0] ? "/" : "", name) >= (int)sizeof path) {
+        printf("FAIL path too long: %s/%s\n", w->dir, name);
+        fails++;
+        return;
+    }
     for (char *p = path; *p; p++) *p = (char)toupper((unsigned char)*p);
     if (is_dir) {
         Walk sub = *w;
-        snprintf(sub.dir, sizeof sub.dir, "%s", path);
+        memcpy(sub.dir, path, sizeof sub.dir);   /* the same size */
         walk_dir(&sub, path);
         w->it = sub.it, w->n = sub.n, w->cap = sub.cap;
         return;
@@ -37,7 +41,7 @@ static void on_entry(const char *name, bool is_dir, void *user)
         w->it = realloc(w->it, (size_t)w->cap * sizeof *w->it);
     }
     Item *it = &w->it[w->n++];
-    snprintf(it->path, sizeof it->path, "%s", path);
+    memcpy(it->path, path, sizeof it->path);
     size_t n = 0;
     uint8_t *d = vfs_read_all(path, &n);
     it->size = d ? (uint32_t)n : 0xffffffffu;
