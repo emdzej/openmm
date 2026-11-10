@@ -1,75 +1,205 @@
-/* OpenMM theme: a toy box on the kitchen table.
-   - colours sampled from the game's VGA palette (INTRO.PAL): its pure red, yellow, blue and cyan;
-   - the navigation bar is a red and white kerb, the hero's track drawn procedurally (public/hero.svg);
-   - type: heavy rounded capitals for the headings (the toy packaging), plain sans for the text.
-   Light mode is a white tablecloth with near-black ink, the palette's blue for links. Dark mode is the
-   table at night: deep blue-black, yellow headings, cyan links. */
+/* OpenMM theme: the box's cover, redrawn (nothing of the cover itself is used; colours sampled from it).
+   - the logo: white heavy italic letters outlined in deep purple, on a purple banner between yellow
+     speed stripes, a red-ringed cyan roundel behind (public/wordmark.svg, public/favicon.svg);
+   - the scene: a pool table, green cushion over blue felt, with balls, cards, chalk and Formula One toys
+     (public/hero.svg). The navigation bar is the cushion with the logo's stripes under it, the home
+     page's hero the felt.
+   Light mode is the cards' cream stock with purple-black ink, the felt's blue (darkened) for links,
+   purple headings. Dark mode is the table at night: deep purple, yellow headings, light felt-blue links. */
 
 :root {
-  --mm-red: #e00000;        /* INTRO.PAL's red, a shade deeper for contrast */
-  --mm-red-dark: #a80000;
-  --mm-yellow: #f6f600;     /* INTRO.PAL index 30 */
-  --mm-blue: #0000e0;       /* INTRO.PAL's blue */
-  --mm-cyan: #00a1ff;       /* INTRO.PAL index 131 */
-  --mm-ink: #14141c;
-  --mm-cloth: #fbfbf7;
-  --mm-cloth-2: #f1f1ea;
-  --mm-kerb: repeating-linear-gradient(90deg, var(--mm-red) 0 24px, #ffffff 24px 48px);
+  --mm-purple: #421057;
+  --mm-purple-ink: #2a0a3c;
+  --mm-yellow: #fbf214;
+  --mm-red: #d22a1b;
+  --mm-cyan: #1aa0dc;
+  --mm-felt: #3f97da;
+  --mm-felt-dark: #2a6cb5;
+  --mm-cushion: #1b5f2e;
+  --mm-cushion-light: #3f865d;
+  --mm-chalk: #18a24a;
+  --mm-cream: #fbf6e4;
+  --mm-cream-2: #f3ecd2;
+  --mm-ink: #1b1024;
+  --mm-wing: linear-gradient(var(--mm-yellow), var(--mm-yellow)) 0 0 / 100% 5px no-repeat,
+             linear-gradient(var(--mm-purple), var(--mm-purple)) 0 5px / 100% 4px no-repeat;
 
   --vp-font-family-base: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --mm-display: "Arial Rounded MT Bold", "Arial Black", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --mm-display: "Arial Black", "Helvetica Neue", Helvetica, Arial, sans-serif;
 
-  --vp-c-brand-1: var(--mm-blue);
-  --vp-c-brand-2: #0000a8;
-  --vp-c-brand-3: #2a2aff;
-  --vp-c-brand-soft: rgba(0, 0, 224, 0.1);
+  --vp-c-brand-1: #1d5fa8;
+  --vp-c-brand-2: #164c88;
+  --vp-c-brand-3: var(--mm-felt);
+  --vp-c-brand-soft: rgba(63, 151, 218, 0.14);
 
-  --vp-c-bg: var(--mm-cloth);
-  --vp-c-bg-alt: var(--mm-cloth-2);
-  --vp-c-bg-soft: var(--mm-cloth-2);
+  --vp-c-bg: var(--mm-cream);
+  --vp-c-bg-alt: var(--mm-cream-2);
+  --vp-c-bg-elv: #fffbef;
+  --vp-c-bg-soft: var(--mm-cream-2);
+  --vp-c-divider: rgba(42, 10, 60, 0.14);
+  --vp-c-gutter: var(--mm-cream-2);
   --vp-c-text-1: var(--mm-ink);
+  --vp-c-text-2: #43384e;
+  --vp-c-text-3: #6b6176;
 
-  --vp-button-brand-bg: var(--mm-red);
-  --vp-button-brand-hover-bg: var(--mm-red-dark);
-  --vp-button-brand-active-bg: var(--mm-red-dark);
-  --vp-button-brand-text: #ffffff;
-  --vp-button-brand-hover-text: #ffffff;
+  --vp-code-bg: var(--mm-cream-2);
+  --vp-code-block-bg: #f6efd9;
+  --vp-code-color: var(--mm-purple);
 
-  --vp-home-hero-name-color: var(--mm-red);
+  /* the logo's wings: yellow with a purple outline */
+  --vp-button-brand-border: var(--mm-purple-ink);
+  --vp-button-brand-text: var(--mm-purple-ink);
+  --vp-button-brand-bg: var(--mm-yellow);
+  --vp-button-brand-hover-border: var(--mm-purple-ink);
+  --vp-button-brand-hover-text: var(--mm-purple-ink);
+  --vp-button-brand-hover-bg: #fff86a;
+  --vp-button-brand-active-border: var(--mm-purple-ink);
+  --vp-button-brand-active-text: var(--mm-purple-ink);
+  --vp-button-brand-active-bg: #e8de00;
+  --vp-button-alt-border: var(--mm-purple-ink);
+  --vp-button-alt-text: #ffffff;
+  --vp-button-alt-bg: var(--mm-purple);
+  --vp-button-alt-hover-border: var(--mm-purple-ink);
+  --vp-button-alt-hover-text: #ffffff;
+  --vp-button-alt-hover-bg: #5a1d78;
+
+  --vp-nav-bg-color: var(--mm-cushion);
+  --vp-c-tip-1: var(--vp-c-brand-1);
 }
 
 .dark {
-  --mm-night: #0b0c1a;
-  --vp-c-brand-1: var(--mm-cyan);
-  --vp-c-brand-2: #5cc4ff;
-  --vp-c-brand-3: #0083d0;
-  --vp-c-brand-soft: rgba(0, 161, 255, 0.16);
-  --vp-c-bg: var(--mm-night);
-  --vp-c-bg-alt: #121427;
-  --vp-c-bg-soft: #161a30;
-  --vp-c-text-1: #f2f2ea;
-  --vp-home-hero-name-color: var(--mm-yellow);
+  --vp-c-brand-1: #7cc6f2;
+  --vp-c-brand-2: #a6d8f6;
+  --vp-c-brand-3: var(--mm-felt-dark);
+  --vp-c-brand-soft: rgba(124, 198, 242, 0.16);
+  --vp-c-bg: #170c22;
+  --vp-c-bg-alt: #1f1230;
+  --vp-c-bg-elv: #23153a;
+  --vp-c-bg-soft: #23153a;
+  --vp-c-divider: rgba(251, 242, 20, 0.14);
+  --vp-c-gutter: #0f0818;
+  --vp-c-text-1: #f5efdc;
+  --vp-c-text-2: #cfc4d8;
+  --vp-c-text-3: #9a8fa6;
+  --vp-code-bg: #23153a;
+  --vp-code-block-bg: #1f1230;
+  --vp-code-color: #ffe98a;
+  --vp-nav-bg-color: #123f1f;
 }
 
-/* the kerb under the navigation bar */
-.VPNav {
-  border-bottom: 8px solid transparent;
-  border-image: var(--mm-kerb) 8;
+/* ---- the navigation bar: the cushion, the wings' stripes under it ---- */
+
+.VPNavBar,
+.VPNavBar.has-sidebar .content-body,
+.VPNavBar.has-sidebar .title,
+.VPNavBar:not(.home.top) .content-body {
+  background: linear-gradient(180deg, var(--mm-cushion) 0%, var(--mm-cushion-light) 100%) !important;
 }
+.dark .VPNavBar,
+.dark .VPNavBar.has-sidebar .content-body,
+.dark .VPNavBar.has-sidebar .title,
+.dark .VPNavBar:not(.home.top) .content-body {
+  background: linear-gradient(180deg, #0f3319 0%, #1b5f2e 100%) !important;
+}
+.VPNavBar .divider { display: none; }
+.VPNav::after {
+  content: "";
+  display: block;
+  height: 9px;
+  background: var(--mm-wing);
+}
+.VPNavBar .title,
+.VPNavBarMenuLink,
+.VPNavBarMenuGroup .text,
+.VPNavBarSocialLinks .VPSocialLink,
+.VPNavBarExtra .button,
+.VPNavBarHamburger .container {
+  color: #ffffff !important;
+}
+.VPNavBarHamburger .top,
+.VPNavBarHamburger .middle,
+.VPNavBarHamburger .bottom { background-color: #ffffff !important; }
+.VPNavBarMenuLink:hover,
+.VPNavBarMenuLink.active { color: var(--mm-yellow) !important; }
+.VPNavBarTitle .title {
+  font-family: var(--mm-display);
+  font-style: italic;
+  letter-spacing: 0.01em;
+  text-shadow: -1px -1px 0 var(--mm-purple-ink), 1px -1px 0 var(--mm-purple-ink), -1px 1px 0 var(--mm-purple-ink),
+               1px 1px 0 var(--mm-purple-ink), 2px 2px 0 var(--mm-purple-ink);
+}
+.VPNavBarSearch .DocSearch-Button { background: rgba(0, 0, 0, 0.22); }
+.VPNavBarSearch .DocSearch-Button .DocSearch-Search-Icon,
+.VPNavBarSearch .DocSearch-Button-Placeholder { color: #e8f3ea; }
+/* the sidebar and the local nav sit under the taller bar */
+.VPSidebar { padding-top: calc(var(--vp-nav-height) + 9px) !important; }
+.VPLocalNav { top: calc(var(--vp-nav-height) + 9px) !important; }
+
+/* ---- headings: heavy italic, purple (yellow at night) ---- */
 
 .vp-doc h1,
 .vp-doc h2,
-.VPHero .name,
+.vp-doc h3,
 .VPFeature .title {
   font-family: var(--mm-display);
-  letter-spacing: 0.01em;
+  font-style: italic;
+  letter-spacing: 0;
+  color: var(--mm-purple);
 }
-
 .dark .vp-doc h1,
-.dark .vp-doc h2 {
-  color: var(--mm-yellow);
-}
+.dark .vp-doc h2,
+.dark .vp-doc h3,
+.dark .VPFeature .title { color: var(--mm-yellow); }
+.vp-doc h2 { border-top: 4px solid var(--mm-yellow); }
 
-.VPHero .name {
-  text-transform: uppercase;
+/* ---- the home page: the hero on the felt, the features as playing cards ---- */
+
+.VPHome .VPHero {
+  margin-top: 9px;
+  padding-bottom: 56px !important;
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.08) 0 30%, transparent 30% 60%, rgba(255, 255, 255, 0.05) 60%),
+    linear-gradient(180deg, var(--mm-felt) 0%, var(--mm-felt-dark) 100%);
+  border-bottom: 10px solid var(--mm-cushion);
+}
+.dark .VPHome .VPHero {
+  background: linear-gradient(180deg, #23558f 0%, #173a66 100%);
+  border-bottom-color: #123f1f;
+}
+.VPHero .name,
+.VPHero .name .clip {
+  font-family: var(--mm-display);
+  font-style: italic;
+  text-transform: none;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background: none !important;
+  text-shadow: -3px -3px 0 var(--mm-purple-ink), 3px -3px 0 var(--mm-purple-ink), -3px 3px 0 var(--mm-purple-ink),
+               3px 3px 0 var(--mm-purple-ink), 0 3px 0 var(--mm-purple-ink), 3px 0 0 var(--mm-purple-ink),
+               -3px 0 0 var(--mm-purple-ink), 0 -3px 0 var(--mm-purple-ink), 6px 6px 0 var(--mm-purple-ink);
+}
+.VPHero .text {
+  font-family: var(--mm-display);
+  font-style: italic;
+  color: var(--mm-yellow);
+  text-shadow: 3px 3px 0 var(--mm-purple-ink);
+}
+.VPHero .tagline { color: #f4f9ff; text-shadow: 0 1px 2px rgba(20, 10, 40, 0.5); }
+.VPHero .image-bg { display: none; }
+.VPHero .image-src { filter: drop-shadow(0 10px 18px rgba(20, 10, 40, 0.45)); }
+
+.VPFeature {
+  background: #fffaf0 !important;
+  border: 2.5px solid var(--mm-ink) !important;
+  border-radius: 12px !important;
+  box-shadow: 4px 4px 0 var(--mm-purple);
+}
+.dark .VPFeature {
+  background: var(--vp-c-bg-elv) !important;
+  border-color: var(--mm-yellow) !important;
+  box-shadow: 4px 4px 0 #000;
+}
+@media (min-width: 960px) {
+  .VPHero .image-container { width: 440px; height: 500px; }
+  .VPHero .image-src { max-width: 420px; max-height: 490px; }
 }

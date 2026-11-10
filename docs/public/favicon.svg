@@ -1,14 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- OpenMM's mark: a toy car from above on a red and white kerb, in the palette's primaries -->
-  <rect x="2" y="2" width="60" height="60" rx="12" fill="#f6f600" stroke="#14141c" stroke-width="3"/>
-  <path d="M8 50 h12 v6 h-12z M32 50 h12 v6 h-12z" fill="#e00000"/>
-  <path d="M20 50 h12 v6 h-12z M44 50 h12 v6 h-12z" fill="#ffffff"/>
-  <rect x="8" y="50" width="48" height="6" fill="none" stroke="#14141c" stroke-width="2"/>
-  <rect x="20" y="9" width="24" height="36" rx="8" fill="#e00000" stroke="#14141c" stroke-width="3"/>
-  <rect x="24" y="16" width="16" height="9" rx="3" fill="#00a1ff" stroke="#14141c" stroke-width="2"/>
-  <rect x="24" y="31" width="16" height="7" rx="3" fill="#0000e0" stroke="#14141c" stroke-width="2"/>
-  <rect x="15" y="13" width="5" height="9" rx="2" fill="#14141c"/>
-  <rect x="44" y="13" width="5" height="9" rx="2" fill="#14141c"/>
-  <rect x="15" y="32" width="5" height="9" rx="2" fill="#14141c"/>
-  <rect x="44" y="32" width="5" height="9" rx="2" fill="#14141c"/>
+  <!-- OpenMM's mark: the wordmark's roundel (red ring, cyan centre) on yellow speed stripes, with a heavy
+       italic MM in white outlined in purple. Drawn for the project; colours sampled from the box. -->
+  <g fill="#fbf214" stroke="#2a0a3c" stroke-width="2" stroke-linejoin="round">
+    <path d="M1 22 H22 L20 29 H4Z"/>
+    <path d="M63 22 H42 L44 29 H60Z"/>
+    <path d="M4 33 H21 L19 39 H7Z"/>
+    <path d="M60 33 H43 L45 39 H57Z"/>
+  </g>
+  <circle cx="32" cy="32" r="22" fill="#d22a1b" stroke="#2a0a3c" stroke-width="2.5"/>
+  <circle cx="32" cy="32" r="15" fill="#1aa0dc" stroke="#2a0a3c" stroke-width="2"/>
+  <path d="M8 25 H56 L50 41 H14Z" fill="#421057" stroke="#2a0a3c" stroke-width="2.5" stroke-linejoin="round"/>
+  <text x="33" y="39.5" text-anchor="middle" font-family="Arial Black, Helvetica, Arial, sans-serif" font-weight="900"
+        font-style="italic" font-size="17" fill="#ffffff" stroke="#2a0a3c" stroke-width="3" paint-order="stroke">MM</text>
 </svg>

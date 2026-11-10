@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 150">
+  <!-- OpenMM's wordmark, drawn for the project in the idiom of the box's logo (not a copy of it): yellow
+       speed stripes for wings, a purple banner, a red-ringed roundel behind, white heavy italic letters
+       outlined in purple. Colours sampled from the cover. -->
+  <g fill="#fbf214" stroke="#2a0a3c" stroke-width="3" stroke-linejoin="round">
+    <path d="M14 34 H208 L196 52 H34Z"/>
+    <path d="M30 60 H192 L182 76 H48Z"/>
+    <path d="M546 34 H352 L364 52 H526Z"/>
+    <path d="M530 60 H368 L378 76 H512Z"/>
+  </g>
+  <circle cx="280" cy="75" r="68" fill="#d22a1b" stroke="#2a0a3c" stroke-width="4"/>
+  <circle cx="280" cy="75" r="50" fill="#1aa0dc" stroke="#2a0a3c" stroke-width="3"/>
+  <path d="M58 46 H502 L456 112 H104Z" fill="#421057" stroke="#2a0a3c" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M66 50 H494" stroke="#7a3aa0" stroke-width="3"/>
+  <text x="282" y="100" text-anchor="middle" font-family="Arial Black, Helvetica Neue, Arial, sans-serif"
+        font-weight="900" font-style="italic" font-size="58" letter-spacing="-1" fill="#ffffff"
+        stroke="#2a0a3c" stroke-width="7" paint-order="stroke" transform="skewX(-8) translate(12 0)">OpenMM</text>
+</svg>

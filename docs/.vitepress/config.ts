@@ -12,7 +12,7 @@ export default defineConfig({
 
   head: [
     ["link", { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" }],
-    ["meta", { name: "theme-color", content: "#e00000" }],
+    ["meta", { name: "theme-color", content: "#1b5f2e" }],
     ["meta", { property: "og:title", content: "OpenMM: Micro Machines, reimplemented" }],
     [
       "meta",

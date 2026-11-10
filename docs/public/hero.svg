@@ -1,41 +1,117 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
-  <!-- Drawn for OpenMM, not taken from the game: a toy race track on a checked tablecloth, seen from
-       above, with three small cars in the palette's primaries. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 560">
+  <!-- Drawn for OpenMM, not taken from the game or its box: the pool-table scene of the cover's idiom,
+       built from primitives. Blue felt under a green cushion with a pocket, two pool balls, two playing
+       cards, a cube of chalk and two Formula One toys racing across. Colours sampled from the cover. -->
   <defs>
-    <pattern id="cloth" width="50" height="50" patternUnits="userSpaceOnUse">
-      <rect width="50" height="50" fill="#ffffff"/>
-      <rect width="25" height="25" fill="#cfe9ff"/>
-      <rect x="25" y="25" width="25" height="25" fill="#cfe9ff"/>
+    <linearGradient id="felt" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#4fb0e8"/>
+      <stop offset="1" stop-color="#2a6cb5"/>
+    </linearGradient>
+    <linearGradient id="cushion" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b5f2e"/>
+      <stop offset="1" stop-color="#3f865d"/>
+    </linearGradient>
+    <radialGradient id="shine" cx="0.35" cy="0.3" r="0.7">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.75"/>
+      <stop offset="0.35" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="net" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="10" height="10" fill="#0f2a18"/>
+      <path d="M0 0 H10 M0 0 V10" stroke="#6fbf7a" stroke-width="1.6"/>
     </pattern>
-    <pattern id="kerb" width="24" height="24" patternUnits="userSpaceOnUse">
-      <rect width="24" height="24" fill="#ffffff"/>
-      <rect width="12" height="24" fill="#e00000"/>
-    </pattern>
-    <g id="car">
-      <rect x="-11" y="-18" width="22" height="36" rx="7" stroke="#14141c" stroke-width="2.5"/>
-      <rect x="-7" y="-11" width="14" height="8" rx="2.5" fill="#00a1ff" stroke="#14141c" stroke-width="1.5"/>
-      <rect x="-15" y="-14" width="4" height="8" rx="1.5" fill="#14141c"/>
-      <rect x="11" y="-14" width="4" height="8" rx="1.5" fill="#14141c"/>
-      <rect x="-15" y="6" width="4" height="8" rx="1.5" fill="#14141c"/>
-      <rect x="11" y="6" width="4" height="8" rx="1.5" fill="#14141c"/>
+    <path id="spade" d="M0 -9 C-9 -1 -9 5 -4 6 C-2 6.4 -1 5.5 -0.8 4.6 L-3 11 H3 L0.8 4.6 C1 5.5 2 6.4 4 6 C9 5 9 -1 0 -9Z"/>
+    <path id="diamond" d="M0 -10 L7 0 L0 10 L-7 0Z"/>
+    <!-- a Formula One toy from above, nose up; bodywork in currentColor, livery stripes in white -->
+    <g id="f1" stroke="#1b1024" stroke-width="2" stroke-linejoin="round">
+      <rect x="-37" y="-52" width="13" height="24" rx="3" fill="#1b1024"/>
+      <rect x="24" y="-52" width="13" height="24" rx="3" fill="#1b1024"/>
+      <rect x="-40" y="20" width="16" height="30" rx="4" fill="#1b1024"/>
+      <rect x="24" y="20" width="16" height="30" rx="4" fill="#1b1024"/>
+      <rect x="-33" y="-70" width="66" height="11" rx="3" fill="currentColor"/>
+      <path d="M-6 -62 H6 L13 -12 H-13Z" fill="currentColor"/>
+      <rect x="-23" y="-16" width="46" height="56" rx="11" fill="currentColor"/>
+      <path d="M-4 -60 H4 L6 -16 H-6Z" fill="#ffffff" stroke="none"/>
+      <rect x="-23" y="8" width="46" height="8" fill="#ffffff" stroke="none"/>
+      <ellipse cx="0" cy="-3" rx="8" ry="13" fill="#1b1024"/>
+      <circle cx="0" cy="-5" r="6" fill="#fbf214"/>
+      <path d="M-10 38 H10 L7 54 H-7Z" fill="currentColor"/>
+      <rect x="-30" y="52" width="60" height="13" rx="3" fill="currentColor"/>
+      <rect x="-30" y="56" width="60" height="4" fill="#ffffff" stroke="none"/>
     </g>
   </defs>
-  <rect width="400" height="400" rx="28" fill="url(#cloth)"/>
-  <path d="M200 52 C330 52 352 130 300 186 C262 228 300 262 300 300 C300 350 250 352 200 352
-           C120 352 52 330 52 250 C52 188 118 186 118 140 C118 82 140 52 200 52Z"
-        fill="none" stroke="url(#kerb)" stroke-width="74" stroke-linejoin="round"/>
-  <path d="M200 52 C330 52 352 130 300 186 C262 228 300 262 300 300 C300 350 250 352 200 352
-           C120 352 52 330 52 250 C52 188 118 186 118 140 C118 82 140 52 200 52Z"
-        fill="none" stroke="#6b6b73" stroke-width="58" stroke-linejoin="round"/>
-  <path d="M200 52 C330 52 352 130 300 186 C262 228 300 262 300 300 C300 350 250 352 200 352
-           C120 352 52 330 52 250 C52 188 118 186 118 140 C118 82 140 52 200 52Z"
-        fill="none" stroke="#ffffff" stroke-width="2.5" stroke-dasharray="14 12"/>
-  <rect x="182" y="23" width="8" height="58" fill="#14141c"/>
-  <rect x="182" y="23" width="4" height="7" fill="#ffffff"/><rect x="186" y="30" width="4" height="7" fill="#ffffff"/>
-  <rect x="182" y="37" width="4" height="7" fill="#ffffff"/><rect x="186" y="44" width="4" height="7" fill="#ffffff"/>
-  <rect x="182" y="51" width="4" height="7" fill="#ffffff"/><rect x="186" y="58" width="4" height="7" fill="#ffffff"/>
-  <rect x="182" y="65" width="4" height="7" fill="#ffffff"/><rect x="186" y="72" width="4" height="7" fill="#ffffff"/>
-  <use href="#car" fill="#e00000" transform="translate(250 64) rotate(96)"/>
-  <use href="#car" fill="#f6f600" transform="translate(316 150) rotate(150)"/>
-  <use href="#car" fill="#0000e0" transform="translate(78 236) rotate(-10)"/>
+
+  <rect width="480" height="560" rx="26" fill="url(#felt)"/>
+  <!-- felt nap: faint diagonal sheen -->
+  <path d="M0 360 L480 160 V230 L0 430Z" fill="#ffffff" opacity="0.06"/>
+  <!-- the cushion along the top, with its pocket -->
+  <path d="M26 0 H454 A26 26 0 0 1 480 26 V122 C380 112 300 96 0 128 V26 A26 26 0 0 1 26 0Z" fill="url(#cushion)"/>
+  <path d="M0 128 C300 96 380 112 480 122" fill="none" stroke="#0f3a1c" stroke-width="5"/>
+  <circle cx="420" cy="132" r="44" fill="#0f2a18" stroke="#0b2014" stroke-width="5"/>
+  <circle cx="420" cy="132" r="36" fill="url(#net)"/>
+
+  <!-- the 6 of spades -->
+  <g transform="translate(78 236) rotate(-12)">
+    <rect x="-48" y="-68" width="96" height="136" rx="9" fill="#fffaf0" stroke="#1b1024" stroke-width="2.5"/>
+    <g fill="#1b1024">
+      <use href="#spade" transform="translate(-20 -36) scale(1.3)"/><use href="#spade" transform="translate(20 -36) scale(1.3)"/>
+      <use href="#spade" transform="translate(-20 0) scale(1.3)"/><use href="#spade" transform="translate(20 0) scale(1.3)"/>
+      <use href="#spade" transform="translate(-20 36) scale(1.3)"/><use href="#spade" transform="translate(20 36) scale(1.3)"/>
+    </g>
+  </g>
+  <!-- the 5 of diamonds -->
+  <g transform="translate(392 300) rotate(16)">
+    <rect x="-48" y="-68" width="96" height="136" rx="9" fill="#fffaf0" stroke="#1b1024" stroke-width="2.5"/>
+    <g fill="#d22a1b">
+      <use href="#diamond" transform="translate(-20 -36) scale(1.4)"/><use href="#diamond" transform="translate(20 -36) scale(1.4)"/>
+      <use href="#diamond" transform="scale(1.4)"/>
+      <use href="#diamond" transform="translate(-20 36) scale(1.4)"/><use href="#diamond" transform="translate(20 36) scale(1.4)"/>
+    </g>
+  </g>
+
+  <!-- the green 6, half way up the table -->
+  <g transform="translate(214 178)">
+    <ellipse cx="6" cy="38" rx="34" ry="8" fill="#0d2850" opacity="0.35"/>
+    <circle r="40" fill="#18a24a" stroke="#1b1024" stroke-width="2.5"/>
+    <circle cx="-4" cy="-2" r="17" fill="#ffffff"/>
+    <text x="-4" y="6" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="22" fill="#1b1024">6</text>
+    <circle r="40" fill="url(#shine)"/>
+  </g>
+
+  <!-- the cube of chalk -->
+  <g transform="translate(404 448)">
+    <path d="M-26 -14 L0 -26 L26 -14 L0 -2Z" fill="#5fd07a" stroke="#1b1024" stroke-width="2"/>
+    <path d="M-26 -14 L0 -2 V28 L-26 16Z" fill="#18a24a" stroke="#1b1024" stroke-width="2"/>
+    <path d="M26 -14 L0 -2 V28 L26 16Z" fill="#0f7a35" stroke="#1b1024" stroke-width="2"/>
+    <ellipse cx="0" cy="-14" rx="9" ry="4" fill="#2f6fb7"/>
+  </g>
+
+  <!-- the yellow 9, big and close, off the left edge -->
+  <g transform="translate(36 448)">
+    <circle r="96" fill="#f5dc0f" stroke="#1b1024" stroke-width="3"/>
+    <circle cx="8" cy="-10" r="34" fill="#ffffff"/>
+    <text x="8" y="6" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="44" fill="#1b1024">9</text>
+    <circle r="96" fill="url(#shine)"/>
+  </g>
+
+  <!-- the two racers: green and yellow behind, red and white in front -->
+  <g color="#18a24a" transform="translate(278 300) rotate(-34) scale(0.78)"><use href="#f1"/></g>
+  <g transform="translate(278 300) rotate(-34) scale(0.78)"><rect x="-23" y="-16" width="46" height="8" fill="#fbf214"/></g>
+  <g color="#d22a1b" transform="translate(262 452) rotate(-22)"><use href="#f1"/></g>
+
+  <!-- the wordmark on the cushion -->
+  <svg x="20" y="4" width="440" height="118" viewBox="0 0 560 150">
+  <g fill="#fbf214" stroke="#2a0a3c" stroke-width="3" stroke-linejoin="round">
+    <path d="M14 34 H208 L196 52 H34Z"/>
+    <path d="M30 60 H192 L182 76 H48Z"/>
+    <path d="M546 34 H352 L364 52 H526Z"/>
+    <path d="M530 60 H368 L378 76 H512Z"/>
+  </g>
+  <circle cx="280" cy="75" r="68" fill="#d22a1b" stroke="#2a0a3c" stroke-width="4"/>
+  <circle cx="280" cy="75" r="50" fill="#1aa0dc" stroke="#2a0a3c" stroke-width="3"/>
+  <path d="M58 46 H502 L456 112 H104Z" fill="#421057" stroke="#2a0a3c" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M66 50 H494" stroke="#7a3aa0" stroke-width="3"/>
+  <text x="282" y="100" text-anchor="middle" font-family="Arial Black, Helvetica Neue, Arial, sans-serif"
+        font-weight="900" font-style="italic" font-size="58" letter-spacing="-1" fill="#ffffff"
+        stroke="#2a0a3c" stroke-width="7" paint-order="stroke" transform="skewX(-8) translate(12 0)">OpenMM</text>
+  </svg>
 </svg>
