@@ -1,3 +1,12 @@
 # addr	name	module	confidence	description
 1000:0006	Start	main	high	the entry: a start-up check, DS = 193c, SS:SP = 7d78:03e8, mode 13h, then the loop of 1000:0100 and 1000:0220; on the way out the video mode back and int 21h 4c00
 1000:7a75	Copy_Patch32	video	medium	patches the copy loop at 1000:91a4 to move doublewords (66 a5, movsd, written over its four movsw) and sets cs:[92d9] = 40h, cs:[92dc] = a566h; all registers kept
+1000:2efd	Key_Irq	keyboard	high	the IRQ 1 handler: reads the scan code, acknowledges it, tracks the E0 prefix in cs:[2f99], the last press [107f] and release [107e], Esc released -> [1096] = 1, the assigned keys bit mask [107c] (table of 16 scan codes at [106c]); specific EOI
+1000:489c	Timer_Irq	timer	high	the IRQ 0 handler, locked to the retrace: unless IRQ 2 works (cs:[4a92]), PIT to FFFFh, wait for the retrace, reload [2614]; counts [28f7], [0002], [261f], the 32-frame blink [26d0]/[26cf]; the sound driver's tick (AH = 3) while cs:[3279]; chains to the old vector [260c]
+1000:485b	Timer_Measure	timer	high	the frame in PIT counts between two retrace starts: AX = CX = first - second count, DX = the second
+1000:490d	Timer_Install	timer	high	once ([2618]): measures the frame into [2612], reload [2614] = it - 96h, [2610] = 123428h / it, saves the IRQ 0 vector in [260c], installs Timer_Irq, loads the PIT
+1000:4966	Timer_Remove	timer	high	the old IRQ 0 vector back, the PIT at 65536 ([2618] left set)
+1000:498a	Irq_Install	timer	high	Timer_Install, Retrace_IrqInstall, the IRQ 1 vector saved in [2925] and Key_Irq installed
+1000:4a21	Retrace_IrqInstall	timer	high	saves CRTC register 11h in cs:[4a8d] and the IRQ 2 vector in cs:[4a8e], installs Retrace_Irq, enables the VGA's retrace interrupt; cs:[4ade] = FFh
+1000:4a6c	Retrace_IrqRemove	timer	high	the old IRQ 2 vector back, CRTC register 11h rewritten as the install writes it
+1000:4a94	Retrace_Irq	timer	high	the IRQ 2 handler: if 3C2h bit 7 (the VGA's retrace interrupt) clears and acknowledges it, cs:[4a92] = 1, counts cs:[4ade]; else chains to the old vector

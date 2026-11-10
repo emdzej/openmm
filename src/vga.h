@@ -5,4 +5,3 @@
 void vga_wait_retrace_start(void);
 /* "wait while bit 3 is set": the retrace's end */
 void vga_wait_retrace_end(void);
-void mach_call_far(uint16_t seg, uint16_t off);

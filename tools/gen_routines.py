@@ -6,7 +6,7 @@
                look routines up by the address the original uses), and for each routine not yet ported
                a stand-in that logs PENDING_NOTE once
 A routine is ported when a file under src/game/ defines it: a line `void Name(void)` with its citation
-`/* Name seg:off */` on one of the three lines above.
+`/* Name seg:off */` opening one of the fifteen lines above (the comment block over it).
   tools/gen_routines.py <names.tsv> <src/game> <out-dir>"""
 import os
 import re
@@ -33,7 +33,7 @@ def main(argv):
                 m = re.match(r'void (\w+)\(void\)\s*$', l)
                 if not m:
                     continue
-                for j in range(max(0, i - 3), i):
+                for j in range(max(0, i - 15), i):
                     c = cite.search(lines[j])
                     if c and c.group(1) == m.group(1):
                         defined[m.group(1)] = (int(c.group(2), 16), int(c.group(3), 16))

@@ -24,6 +24,9 @@ void io_out16(uint16_t port, uint16_t v);   /* out dx, ax: the index, then the d
 /* ---- interrupts and far calls ---- */
 void mach_int(uint8_t n);   /* int n with R as the registers */
 void mach_drv(void);        /* call far 2424:0000: the sound driver (or FONT.BIN) loaded there */
+/* call far seg:off to code the program found in a vector (pushf first, as for a chained handler): the
+   BIOS's handlers at F000:n, or a routine of names.tsv. */
+void mach_call_far(uint16_t seg, uint16_t off);
 
 typedef void (*IrqFn)(void);
 /* The ported handlers, by the address the original installs (seg:off packed 0xSSSSOOOO). */

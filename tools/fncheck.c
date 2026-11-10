@@ -4,7 +4,9 @@
    registers handed to the int), and the memory and registers at its return are compared with the
    original's. The stack below the entry SP is not compared (the port keeps pushes in locals).
      build/mm_fncheck out/fn/1000_2efd_1 [more captures...]      exit 0 = all match
-   Registers compared: ax bx cx dx si di bp ds es, CF; ZF and SF reported, not failed (-z: failed too). */
+   Registers compared: ax bx cx dx si di bp ds es, CF; ZF reported, not failed (-z: failed too). SP is
+   not modelled (docs/re/porting.md), so neither is the BP a `mov bp, sp` gives: a call's BP is compared
+   only where the service reads it (int 10h 1301h), and the service's BP is not handed back. */
 #include "cpu.h"
 #include "fntab.h"
 #include "machine.h"
@@ -67,11 +69,12 @@ static const char *const regname[] = {"ax", "bx", "cx", "dx", "si", "di", "bp", 
 
 /* R against a recorded line: the general registers and the segments, CF (ZF/SF when strict). */
 static int strict_flags;
+static bool skip_bp;   /* a call's inputs: BP only where the service reads it (int 10h 1301h: ES:BP) */
 static void cmp_regs(const RegLine *r, const char *when)
 {
     uint16_t got[] = {R.ax, R.bx, R.cx, R.dx, R.si, R.di, R.bp, R.sp, R.ds, R.es, R.ss};
     for (int i = 0; i < 11; i++) {
-        if (i == SP_ || i == SS_) continue;
+        if (i == SP_ || i == SS_ || (i == BP_ && skip_bp)) continue;
         if (got[i] != r->v[i]) {
             char m[64];
             snprintf(m, sizeof m, "%s %s", when, regname[i]);
@@ -121,9 +124,12 @@ static void r_out8(uint16_t port, uint8_t v)
     }
 }
 
-static void apply(Event *e, const char *what)
+static void apply(Event *e, const char *what, bool bp_used)
 {
+    skip_bp = !bp_used;
     cmp_regs(&e->pre, what);
+    skip_bp = false;
+    uint16_t bp = R.bp;
     for (int i = 0; i < e->mcount; i++) {
         Span *s = &spans[e->mfirst + i];
         memcpy(g_mem + s->lin, s->data, s->len);
@@ -131,6 +137,7 @@ static void apply(Event *e, const char *what)
     uint16_t sp = R.sp, ss = R.ss;
     cpu_from(&e->post);
     R.sp = sp, R.ss = ss;
+    if (!bp_used) R.bp = bp;
 }
 
 static void r_int(uint8_t n)
@@ -140,13 +147,13 @@ static void r_int(uint8_t n)
     if (e->intno != n) err("%s: port int %x, original int %x", "int", n, e->intno);
     char m[32];
     snprintf(m, sizeof m, "int %02xh", n);
-    apply(e, m);
+    apply(e, m, n == 0x10 && e->pre.v[AX_] == 0x1301);
 }
 
 static void r_drv(void)
 {
     Event *e = next('D', "driver call");
-    if (e) apply(e, "driver call");
+    if (e) apply(e, "driver call", false);
 }
 
 static const MachHooks replay = {r_in8, r_out8, r_int, r_drv};
@@ -166,8 +173,11 @@ static uint8_t *load(const char *dir, const char *name)
 
 static int hexval(int c) { return c <= '9' ? c - '0' : (c | 32) - 'a' + 10; }
 
-static int check(const char *dir)
+static int check(const char *dir_arg)
 {
+    char dir[512];
+    snprintf(dir, sizeof dir, "%s", dir_arg);
+    for (size_t n = strlen(dir); n > 1 && dir[n - 1] == '/'; n--) dir[n - 1] = 0;
     char p[512], line[1 << 16];
     snprintf(p, sizeof p, "%s/events.txt", dir);
     FILE *f = fopen(p, "r");
