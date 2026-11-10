@@ -35,13 +35,14 @@ the default hashes unchanged.
 
 ## State
 
-Steps 0-2 of `docs/re/port-plan.md` are done: the file layer, the PKLITE stub, the full map of the program
-(243 routines named in `tools/ghidra/names.tsv`, modules and work packages in `docs/re/functions.md`), the
-machine (`src/mem.c`, `src/machine.c`, `src/dos.c`, `src/bios.c`) and the porting method: register-exact
-routines in `src/game/`, each checked alone against recordings of the original (`docs/re/porting.md`:
-`tools/emu/capture.py`, `build/mm_fncheck`). The gasm build keeps the original's loops (LOOP). Ported and
-checked so far: the timer, the keyboard handler, `Copy_Patch32`; the rest of the packages are in progress.
-`build/gen/unported.txt` (generated) is the to-do list; `docs/guide/status.md` is the public record.
+All live routines of `MICRO.EXE` are ported (first pass; `build/gen/unported.txt` lists the dead ones
+left) and the port plays from the title through the menus into a race headless (`build/mm_run`). Checked
+against the original: 104 routines (`tools/emu/capture.py @build/gen/ported.txt --hit 1,3,30 --keys
+$(cat out/race_keys.txt)` then `build/mm_fncheck out/fn/*/`; the key script: Enter through the menus,
+then up held and left/right in the Powerboats qualifier). Next: sound (DRIVER1/2 and an OPL2 model),
+FONT.BIN (the code card, behind a parameter), SM.EXE, wider checks (championship, two players, every
+theme) and whole-run comparisons for the routines that wait on the timer. Machine model:
+docs/re/architecture.md; method: docs/re/porting.md; map: docs/re/functions.md.
 
 ## Hard rules
 
