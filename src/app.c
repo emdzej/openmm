@@ -8,6 +8,7 @@
 #include "mem.h"
 #include "platform.h"
 #include "routines.h"
+#include "sound/sound.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -38,6 +39,18 @@ int app_main(void)
     return 0;
 }
 
-void app_audio(float *stereo, unsigned frames) { memset(stereo, 0, (size_t)frames * 2 * sizeof *stereo); }
+/* A frame of sound: the AdLib and the speaker as the drivers left them during the frame (sound.h). */
+void app_audio(float *stereo, unsigned frames)
+{
+    static float mono[8192];
+    if (frames > 8192) frames = 8192;
+    memset(mono, 0, frames * sizeof *mono);
+    opl2_render(mono, frames, APP_AUDIO_RATE);
+    speaker_render(mono, frames, APP_AUDIO_RATE);
+    for (unsigned i = 0; i < frames; i++) {
+        float v = mono[i] > 1.0f ? 1.0f : mono[i] < -1.0f ? -1.0f : mono[i];
+        stereo[2 * i] = stereo[2 * i + 1] = v;
+    }
+}
 
 void app_exit(void) { exe_free(); }

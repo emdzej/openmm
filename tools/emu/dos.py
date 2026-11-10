@@ -132,6 +132,7 @@ class Machine:
         self.pic_mask = 0xb8
         self.in_service = False
         self.key_queue, self.port60 = [], 0
+        self.port61 = 0
         self.irq_pending = set()
         self.opl_idx, self.opl_writes = 0, []
         self.video_mode = 3
@@ -383,7 +384,7 @@ class Machine:
         elif port == 0x60:
             v = self.port60
         elif port == 0x61:
-            v = 0x00
+            v = self.port61                # as last written (the speaker's gate and data)
         elif port == 0x64:
             v = 0x1c                       # input buffer empty, system flag
         elif port == 0x201:
@@ -447,6 +448,8 @@ class Machine:
                 self.in_service = False
         elif port == 0x21:
             self.pic_mask = value
+        elif port == 0x61:
+            self.port61 = value
         elif port == 0x388:
             self.opl_idx = value
         elif port == 0x389:

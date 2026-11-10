@@ -4,12 +4,15 @@
      build/mm_run [--data game] [--frames 300] [--keys 120:1c,124:9c] [--hashes] [--dump 100,200]
                   [--shot 100] [--out out/run]
    --keys: frame:scancode in hex (80h set = release, 100h = the E0 prefix); --hashes: one line per frame,
-   "frame fnv32"; --dump: out/run/mem_<frame>.bin; --shot: a PPM of the port's frame. */
+   "frame fnv32"; --dump: out/run/mem_<frame>.bin; --shot: a PPM of the port's frame; --wav: the sound,
+   44.1 kHz 16-bit stereo. The game's settings (SETTINGS.DAT, as the user's storage) are read from
+   <out>/writes/ first, so a run can choose the sound device. */
 #include "app.h"
 #include "platform.h"
 #include "vfs.h"
 #include "vfs_host.h"
 #include "mem.h"
+#include "sound/sound.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,7 +25,11 @@ static int dumps[64], ndumps, shots[64], nshots;
 static struct { int frame; uint16_t code; } keys[1024];
 static int nkeys;
 static uint8_t last_px[320 * 200], last_pal[768];
-static uint32_t video_hash = 2166136261u;
+static uint32_t video_hash = 2166136261u, audio_hash = 2166136261u;
+static FILE *wav, *opl_log;
+static void log_opl(uint8_t idx, uint8_t v) { fprintf(opl_log, "%d %x %x\n", frame, idx, v); }
+static uint32_t wav_frames;
+static double audio_acc;
 
 static uint32_t fnv(uint32_t h, const uint8_t *p, size_t n)
 {
@@ -79,7 +86,13 @@ int plat_key_events(uint16_t *codes, int cap)
 
 static void finish(void)
 {
-    printf("frames %d, video_fnv32=%08x\n", frame, video_hash);
+    printf("frames %d, video_fnv32=%08x audio_fnv32=%08x\n", frame, video_hash, audio_hash);
+    if (wav) {   /* the RIFF header's sizes */
+        uint32_t data = wav_frames * 4, riff = 36 + data;
+        fseek(wav, 4, SEEK_SET), fwrite(&riff, 4, 1, wav);
+        fseek(wav, 40, SEEK_SET), fwrite(&data, 4, 1, wav);
+        fclose(wav), wav = NULL;
+    }
 }
 
 void plat_exit(int code)
@@ -92,6 +105,18 @@ void plat_exit(int code)
 
 void plat_wait_frame(void)
 {
+    static float buf[4096 * 2];
+    audio_acc += APP_AUDIO_RATE / APP_FRAME_HZ;
+    unsigned na = (unsigned)audio_acc;
+    audio_acc -= na;
+    app_audio(buf, na);
+    audio_hash = fnv(audio_hash, (const uint8_t *)buf, na * 2 * sizeof *buf);
+    if (wav)
+        for (unsigned i = 0; i < na; i++) {
+            int16_t lr[2] = {(int16_t)(buf[2 * i] * 32000), (int16_t)(buf[2 * i + 1] * 32000)};
+            fwrite(lr, 2, 2, wav);
+            wav_frames++;
+        }
     uint32_t h = fnv(fnv(2166136261u, last_px, sizeof last_px), last_pal, sizeof last_pal);
     video_hash = fnv(video_hash, (const uint8_t *)&h, 4);
     if (hashes) printf("%d %08x\n", frame, h);
@@ -143,6 +168,17 @@ int main(int argc, char **argv)
         else if (!strcmp(a, "--dump") && v) ndumps = list(v, dumps, 64), i++;
         else if (!strcmp(a, "--shot") && v) nshots = list(v, shots, 64), i++;
         else if (!strcmp(a, "--out") && v) out_dir = v, i++;
+        else if (!strcmp(a, "--opl-log") && v) {
+            opl_log = fopen(v, "w");
+            if (opl_log) opl2_set_log(log_opl);
+            i++;
+        } else if (!strcmp(a, "--wav") && v) {
+            wav = fopen(v, "wb");
+            static const uint8_t hdr[44] = {'R', 'I', 'F', 'F', 0, 0, 0, 0, 'W', 'A', 'V', 'E', 'f', 'm', 't', ' ', 16, 0, 0, 0, 1, 0, 2, 0,
+                                            0x44, 0xac, 0, 0, 0x10, 0xb1, 2, 0, 4, 0, 16, 0, 'd', 'a', 't', 'a', 0, 0, 0, 0};
+            if (wav) fwrite(hdr, 1, sizeof hdr, wav);
+            i++;
+        }
         else if (!strcmp(a, "--keys") && v) {
             for (const char *s = v; *s && nkeys < 1024;) {
                 int f = atoi(s);

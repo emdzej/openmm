@@ -8,6 +8,7 @@
 #include "fntab.h"
 #include "mem.h"
 #include "platform.h"
+#include "sound/sound.h"
 #include "vga.h"
 #include <stdio.h>
 #include <string.h>
@@ -79,6 +80,8 @@ void mach_reset(void)
     for (int n = 0; n < 256; n++) mbw(BIOS_SEG, (uint16_t)n, 0xcf);   /* iret */
     dos_reset();
     bios_reset();
+    opl2_reset();
+    speaker_reset();
 }
 
 /* ---- ports ---- */
@@ -111,10 +114,10 @@ uint8_t io_in8(uint16_t port)
     }
     case 0x21: return pic.mask;
     case 0x60: return kbd.port60;
-    case 0x61: return 0x00;
+    case 0x61: return speaker_port61();   /* as last written (the speaker's gate and data, bits 0-1) */
     case 0x64: return 0x1c;    /* the input buffer empty, the system flag */
     case 0x201: return 0xff;   /* no joystick: the buttons up, the axes timed out */
-    case 0x388: return 0x00;
+    case 0x388: return opl2_read_status();
     default: return 0xff;
     }
 }
@@ -138,6 +141,7 @@ void io_out8(uint16_t port, uint8_t v)
         vga.attr_flip = !vga.attr_flip;
         break;
     case 0x43:
+        if ((v >> 6) == 2) { speaker_out(port, v); break; }   /* channel 2: the speaker's */
         if (((v >> 4) & 3) == 0) {          /* latch */
             if (v >> 6 == 0) pit.latch = pit_count(), pit.read_hi = false;
         } else if (v >> 6 == 0) pit.lo = -1;
@@ -150,8 +154,9 @@ void io_out8(uint16_t port, uint8_t v)
         if (v == 0x20 || (v >= 0x60 && v <= 0x67)) pic.in_service = false;   /* (specific) end of interrupt */
         break;
     case 0x21: pic.mask = v; break;
-    case 0x388: opl_idx = v; break;
-    case 0x389: (void)opl_idx; break;   /* the AdLib: with the sound driver (port-plan step 7) */
+    case 0x388: opl_idx = v, opl2_write_index(v); break;   /* the AdLib (src/sound/opl2.c) */
+    case 0x389: opl2_write_data(v); break;
+    case 0x42: case 0x61: speaker_out(port, v); break;     /* the PC speaker (src/sound/speaker.c) */
     default: break;
     }
 }
@@ -173,6 +178,7 @@ void mach_int(uint8_t n)
     case 0x16: bios_int16(); break;
     case 0x1a: bios_int1a(); break;
     case 0x33: R.ax = 0; break;                       /* no mouse driver */
+    case 0x03: break;   /* a breakpoint left in DRIVER1 (no free voice): DOS's handler only returns */
     case 0x15: R.cf = true, SET_AH(0x86); break;      /* no BIOS extensions */
     default: {
         char m[80];

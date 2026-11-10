@@ -17,6 +17,12 @@ code or data and runs the game from your own copy.
 - The file layer, the gasm backend and the project layout come from the sibling projects of
   [ENCORE](https://encore.emdzej.pl), OpenCMR2 and OpenI76 above all.
 
+- The AdLib model (`src/sound/opl2.c`) was written from the chip's public documentation: Yamaha's
+  YM3812 application manual and the classic programming guides for the AdLib's FM chip (register map,
+  envelope rates, key scaling). No emulator's code was used.
+- The 8 x 14 text cells of the port's BIOS (for the code card's screen) come from the X11 misc-fixed
+  7x14 font by Markus Kuhn and the X Consortium, which is in the public domain.
+
 ## Prior work
 
 [OpenMM on SourceForge](https://sourceforge.net/projects/openmm/), a GPL remake of Micro Machines (C++,
