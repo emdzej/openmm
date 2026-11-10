@@ -16,6 +16,8 @@ typedef struct {
     uint16_t ax, bx, cx, dx, si, di, bp, sp;
     uint16_t ds, es, ss;
     bool cf, zf, sf, df;
+    uint16_t fl;   /* the other FLAGS bits (PF, AF, OF, IF and the fixed ones) as last left; most code ignores
+                      them, the few routines that store FLAGS (pushf into memory) read them back */
 } Cpu;
 
 extern Cpu R;
@@ -41,6 +43,19 @@ static inline void set_hi8(uint16_t *r, uint8_t v) { *r = (uint16_t)((*r & 0x00f
 #define SET_CH(v) set_hi8(&R.cx, (uint8_t)(v))
 #define SET_DL(v) set_lo8(&R.dx, (uint8_t)(v))
 #define SET_DH(v) set_hi8(&R.dx, (uint8_t)(v))
+
+enum { FL_CF = 0x001, FL_PF = 0x004, FL_AF = 0x010, FL_ZF = 0x040, FL_SF = 0x080, FL_DF = 0x400, FL_OF = 0x800 };
+/* The FLAGS word as pushf stores it, and popf. */
+static inline uint16_t cpu_flags(void)
+{
+    return (uint16_t)((R.fl & ~(FL_CF | FL_ZF | FL_SF | FL_DF)) | (R.cf ? FL_CF : 0) | (R.zf ? FL_ZF : 0) |
+                      (R.sf ? FL_SF : 0) | (R.df ? FL_DF : 0));
+}
+static inline void cpu_set_flags(uint16_t f)
+{
+    R.cf = f & FL_CF, R.zf = (f & FL_ZF) != 0, R.sf = (f & FL_SF) != 0, R.df = (f & FL_DF) != 0;
+    R.fl = f;
+}
 
 /* Flags as an arithmetic result leaves them, where a caller tests them after the return. */
 static inline void flags_zs16(uint16_t v) { R.zf = v == 0, R.sf = (v & 0x8000) != 0; }

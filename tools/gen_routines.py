@@ -59,8 +59,9 @@ def main(argv):
         c.append('    {0x%04x%04xu, "%s", %s, %d},' % (s, o, n, n, 1 if n in defined else 0))
     c += ['};', 'const int g_fntab_n = %d;' % len(rows), '']
     u = ['%04x:%04x' % (s, o) for s, o, n in rows if n not in defined and s == 0x1000]
+    pt = ['%04x:%04x %s' % (s, o, n) for s, o, n in rows if n in defined]
     for path, text in ((os.path.join(out, 'routines.h'), h), (os.path.join(out, 'routines.c'), c),
-                       (os.path.join(out, 'unported.txt'), u)):
+                       (os.path.join(out, 'unported.txt'), u), (os.path.join(out, 'ported.txt'), pt)):
         body = '\n'.join(text) + '\n'
         if not os.path.exists(path) or open(path).read() != body:
             open(path, 'w').write(body)

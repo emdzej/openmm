@@ -106,6 +106,10 @@ class Exit(Exception):
 
 class Machine:
     def __init__(self, exe_path, data_dir, write_dir, cmdline=b'', log=None):
+        try:
+            os.nice(19)              # the harness is a background job: never take the machine from the user
+        except OSError:
+            pass
         self.data_dir, self.write_dir = data_dir, write_dir
         os.makedirs(write_dir, exist_ok=True)
         self.log = log or (lambda m: None)

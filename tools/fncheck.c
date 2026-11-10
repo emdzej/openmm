@@ -62,8 +62,7 @@ static void cpu_from(const RegLine *r)
     R.ax = r->v[AX_], R.bx = r->v[BX_], R.cx = r->v[CX_], R.dx = r->v[DX_];
     R.si = r->v[SI_], R.di = r->v[DI_], R.bp = r->v[BP_], R.sp = r->v[SP_];
     R.ds = r->v[DS_], R.es = r->v[ES_], R.ss = r->v[SS_];
-    uint16_t f = r->v[FL_];
-    R.cf = f & 1, R.zf = (f >> 6) & 1, R.sf = (f >> 7) & 1, R.df = (f >> 10) & 1;
+    cpu_set_flags(r->v[FL_]);
 }
 
 static const char *const regname[] = {"ax", "bx", "cx", "dx", "si", "di", "bp", "sp", "ds", "es", "ss"};
