@@ -103,3 +103,13 @@ A key script that steers does not compare this way: its taps are tied to frames,
 frames later in the harness and gains a present on each beat, so the same tap meets another moment of
 the race. Each present follows a fixed number of game steps, so a constant input gives the same
 pictures whatever the timing.
+
+The one-player series (`out/series_keys.txt`: accelerate held, Enter every 200 frames from 2000 to
+3200, 6,000 frames; `--poke-when 193c:26ca=01/193c:12ed=0000` on both, so player 1 has no laps left
+while the start runs and the qualifier ends at once): the qualifier, QUALIFIED FOR CHALLENGE, the
+opponents' picks and the whole first challenge race. 1004 of the port's 1025 pictures appear in the
+original's sequence in order; the rest are the beat, the load time and the start's blink in the other
+phase (player 1's car shown in one and not the other, checked with `--shot-at`). Keys must not fall
+inside a race: Enter is player 1's select key there, and it lands at another moment of each.
+`--poke-when cond/writes` (run.py and mm_run alike) tests the condition bytes at each frame's end and
+writes once.

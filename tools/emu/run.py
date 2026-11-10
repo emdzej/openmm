@@ -46,6 +46,7 @@ def main():
     ap.add_argument('--skip-card', action='store_true', help="don't run FONT.BIN: its pass at once (reference runs only)")
     ap.add_argument('--out', default='out/emu')
     ap.add_argument('--poke-at', default='1000:3039', help='where --poke writes (default Race_Main)')
+    ap.add_argument('--poke-when', default='', help='seg:off=hex/seg:off=hex,...: once the bytes match, write (frame ends)')
     ap.add_argument('--poke', default='', help='seg:off=hex,... written at each --poke-at (other tracks)')
     ap.add_argument('--hashes', action='store_true',
                     help="each frame's picture hashed as build/mm_run --hashes does (mode 13h: indices, DAC)")
@@ -71,10 +72,22 @@ def main():
     per_frame = int(dos.FRAME_TICKS / (dos.SLICE * dos.TICKS_PER_INSN))
     frame = 0
     shot_at = {int(x) for x in a.shot_at.split(',') if x}
+    when = None
+    if a.poke_when:   # the same as mm_run --poke-when: a condition, then the writes, at a frame's end
+        def lin_bytes(kv):
+            addr, hexb = kv.split('=')
+            seg, off = (int(x, 16) for x in addr.split(':'))
+            return seg * 16 + off, bytes.fromhex(hexb)
+        cond, acts = a.poke_when.split('/')
+        when = (lin_bytes(cond), [lin_bytes(x) for x in acts.split(',')])
     try:
         for frame in range(a.frames):
             m.key_queue.extend(keys.get(frame, []))
             m.step(per_frame)
+            if when and m.rd(when[0][0], len(when[0][1])) == when[0][1]:
+                for lin, b in when[1]:
+                    m.wr(lin, b)
+                when = None
             if a.hashes:
                 print('%d %08x' % (frame, picture_hash(m)), flush=True)
             if a.shots and (frame + 1) % a.shots == 0 and m.video_mode in (0x0d, 0x10, 0x12, 0x13):
