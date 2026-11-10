@@ -4,8 +4,8 @@
      build/mm_run [--data game] [--frames 300] [--keys 120:1c,124:9c] [--hashes] [--dump 100,200]
                   [--shot 100] [--out out/run]
    --keys: frame:scancode in hex (80h set = release, 100h = the E0 prefix); --hashes: one line per frame,
-   "frame fnv32"; --gamepad f:x,y,hexbuttons;...: a controller in slot 0; --param name=value as gasm's (splash=0: no SM.EXE, codecard=1); --dump: out/run/mem_<frame>.bin; --shot: a PPM of the port's frame; --wav: the sound; --poke-when seg:off=hex/seg:off=hex,...: once the first bytes match, the
-   others are written (at a frame's end, as tools/emu/run.py's),
+   "frame fnv32"; --gamepad f:x,y,hexbuttons;...: a controller in slot 0; --param name=value as gasm's (splash=0: no SM.EXE, codecard=1); --dump: out/run/mem_<frame>.bin; --shot: a PPM of the port's frame; --wav: the sound; --poke-when seg:off=hex/seg:off=hex,...: each time the first bytes come to
+   match, the others are written (at a frame's end, as tools/emu/run.py's),
    44.1 kHz 16-bit stereo. The game's settings (SETTINGS.DAT, as the user's storage) are read from
    <out>/writes/ first, so a run can choose the sound device. */
 #include "app.h"
@@ -28,9 +28,11 @@ static int nkeys;
 static uint8_t last_px[320 * 200], last_pal[768];
 static uint32_t video_hash = 2166136261u, audio_hash = 2166136261u;
 static FILE *wav, *opl_log;
-/* --poke-when: once the bytes at cond match, write the others (at a frame's end, as run.py does) */
+/* --poke-when: each time the bytes at cond come to match, write the others (at a frame's end, as
+   run.py does) */
 static struct { uint32_t lin; uint8_t b[16]; int n; } when_cond, when_act[8];
 static int n_when_act = -1;
+static bool when_held;
 static void log_opl(uint8_t idx, uint8_t v) { fprintf(opl_log, "%d %x %x\n", frame, idx, v); }
 static uint32_t wav_frames;
 static double audio_acc;
@@ -168,9 +170,11 @@ void plat_wait_frame(void)
             FILE *f = fopen(p, "wb");
             if (f) fwrite(g_mem, 1, MEM_SIZE, f), fclose(f);
         }
-    if (n_when_act >= 0 && !memcmp(g_mem + when_cond.lin, when_cond.b, (size_t)when_cond.n)) {
-        for (int i = 0; i < n_when_act; i++) memcpy(g_mem + when_act[i].lin, when_act[i].b, (size_t)when_act[i].n);
-        n_when_act = -1;
+    if (n_when_act >= 0) {
+        bool hold = !memcmp(g_mem + when_cond.lin, when_cond.b, (size_t)when_cond.n);
+        if (hold && !when_held)
+            for (int i = 0; i < n_when_act; i++) memcpy(g_mem + when_act[i].lin, when_act[i].b, (size_t)when_act[i].n);
+        when_held = hold;
     }
     frame++;
     if (frame >= frames_max) {

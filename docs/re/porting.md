@@ -112,9 +112,13 @@ original's sequence in order; the rest are the beat, the load time and the start
 phase (player 1's car shown in one and not the other, checked with `--shot-at`). Keys must not fall
 inside a race: Enter is player 1's select key there, and it lands at another moment of each.
 `--poke-when cond/writes` (run.py and mm_run alike) tests the condition bytes at each frame's end and
-writes once.
+writes each time they come to match.
 
 GAME OPTIONS' screens (`out/options_keys.txt`: F6 the credits and a key back, F4 twice, F3, F5 REDEFINE
 KEYS with ten letters 60 frames apart, Enter; 2,600 frames): all 21 of the port's distinct pictures
 appear in the original's sequence in order (`Menu_GameOptions` 1000:2770, `Menu_Credits` 1000:2a82,
 `Menu_RedefineKeys` 1000:92f0).
+The poke is tested at frame ends, which fall at another phase of the game steps in the harness than in
+the port, so a race ended by it can end one step apart: one labelled picture more or less before the
+race's 100-step end countdown runs out (seen at the second race of the series). Enter during a race
+changes nothing in either (checked both ways).
