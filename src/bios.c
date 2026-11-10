@@ -5,12 +5,14 @@
 #include "machine.h"
 #include "mem.h"
 #include "platform.h"
+#include "vga_planar.h"
 #include <stdio.h>
 #include <string.h>
 
 double mach_time(void);
-void mach_set_mode(uint8_t mode);
+void mach_set_mode(uint8_t mode, bool clear);
 uint8_t *mach_dac_rw(void);
+uint8_t *mach_attr_rw(void);
 
 static uint16_t keys[32];   /* scan << 8 | ascii */
 static int nkeys;
@@ -26,33 +28,63 @@ void bios_key_event(uint8_t code)
     keys[nkeys++] = (uint16_t)(code << 8 | asc);
 }
 
+/* Write string (AH = 13h) in mode 10h, as the VGA BIOS does it: the characters of CX at ES:BP (with AL
+   bit 1, character and attribute pairs) from row DH, column DL of page BH, in the attribute BL (bit 7:
+   XOR); bell, backspace, line feed and carriage return act as on a teletype, the line wraps at 80
+   columns and the page scrolls past row 24; AL bit 0 leaves the cursor (0040:0050 + 2 * page) after the
+   text. The cells are 8 x 14 of the port's own font (font8x14.h), not IBM's. Other modes: logged only. */
+static void write_string(void)
+{
+    char m[160], t[128];
+    int n = R.cx < 127 ? R.cx : 127;
+    for (int i = 0; i < n; i++) t[i] = (char)mb(R.es, (uint16_t)(R.bp + (AL & 2 ? 2 * i : i)));
+    t[n] = 0;
+    snprintf(m, sizeof m, "bios: text at row %d col %d: %s", DH, DL, t);
+    plat_log(m);
+    if (mach_video_mode() != 0x10) return;
+    int row = DH, col = DL;
+    uint8_t page = BH;
+    uint16_t p = R.bp;
+    for (uint16_t i = 0; i < R.cx; i++) {
+        uint8_t ch = mb(R.es, p++), attr = BL;
+        if (AL & 2) attr = mb(R.es, p++);
+        if (ch == 0x07) continue;
+        if (ch == 0x08) { if (col) col--; continue; }
+        if (ch == 0x0d) { col = 0; continue; }
+        if (ch != 0x0a) {
+            vga_planar_char(ch, attr, page, row, col);
+            if (++col < 80) continue;
+            col = 0;
+        }
+        if (++row > 24) vga_planar_scroll(page, 0, 24), row = 24;
+    }
+    if (AL & 1) mbw(SEG_BIOS, (uint16_t)(0x50 + 2 * (page & 7)), (uint8_t)col), mbw(SEG_BIOS, (uint16_t)(0x51 + 2 * (page & 7)), (uint8_t)row);
+}
+
 void bios_int10(void)
 {
     uint8_t al = AL;
     uint8_t *dac = mach_dac_rw();
-    if (R.ax == 0x1301) {
-        char m[160], t[128];
-        int n = R.cx < 127 ? R.cx : 127;
-        for (int i = 0; i < n; i++) t[i] = (char)mb(R.es, (uint16_t)(R.bp + i));
-        t[n] = 0;
-        snprintf(m, sizeof m, "bios: text at row %d col %d: %s", DH, DL, t);
-        plat_log(m);
-        return;   /* the text itself: with the code card's screen */
-    }
+    if (AH == 0x13) { write_string(); return; }
     switch (AH) {
     case 0x00: {
         uint8_t mode = al & 0x7f;
-        mach_set_mode(mode);
+        mach_set_mode(mode, !(al & 0x80));
         mbw(SEG_BIOS, 0x49, mode);
         if (!(al & 0x80)) memset(mem_ptr(SEG_VGA, 0), 0, 0x10000);
         break;
     }
+    case 0x1a:                   /* the display combination: a VGA with a colour monitor */
+        if (al == 0) SET_AL(0x1a), R.bx = 0x0008;
+        break;
     case 0x0f:
         R.ax = (uint16_t)((mach_video_mode() == 0x13 ? 40 : 80) << 8 | mach_video_mode());
         R.bx &= 0x00ff;
         break;
     case 0x10:
-        if (al == 0x12) {        /* a block of DAC registers from ES:DX */
+        if (al == 0x00) {        /* one attribute (palette) register: BL = BH */
+            if (BL < 0x15) mach_attr_rw()[BL] = BH;
+        } else if (al == 0x12) {        /* a block of DAC registers from ES:DX */
             for (int i = 0; i < 3 * R.cx && R.bx * 3 + i < 768; i++) dac[R.bx * 3 + i] = mb(R.es, (uint16_t)(R.dx + i)) & 0x3f;
         } else if (al == 0x10) { /* one DAC register */
             int i = (R.bx & 0xff) * 3;

@@ -10,6 +10,7 @@
 #include "platform.h"
 #include "sound/sound.h"
 #include "vga.h"
+#include "vga_planar.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -32,7 +33,6 @@ static struct {
     uint8_t dac[768];
     int dac_w, dac_r;
     uint8_t crtc_idx, crtc[256];
-    uint8_t seq_idx, seq[8], gc_idx, gc[16];
     bool attr_flip;
     uint8_t attr_idx, attr[32];
     bool retrace;            /* 3DAh bit 3: set from the boundary until the game waits for its end */
@@ -70,6 +70,7 @@ void mach_reset(void)
 {
     memset(&vga, 0, sizeof vga);
     vga.mode = 3;
+    vga_planar_reset();
     memset(&pit, 0, sizeof pit);
     pit.lo = pit.latch = -1;
     pic.mask = 0xb8, pic.in_service = false;
@@ -102,8 +103,7 @@ uint8_t io_in8(uint16_t port)
     case 0x3c2: return 0x00;   /* no retrace interrupt pending: this VGA raises no IRQ 2 */
     case 0x3c9: { uint8_t v = vga.dac[vga.dac_r]; vga.dac_r = (vga.dac_r + 1) % 768; return v; }
     case 0x3d5: return vga.crtc[vga.crtc_idx];
-    case 0x3c5: return vga.seq[vga.seq_idx & 7];
-    case 0x3cf: return vga.gc[vga.gc_idx & 15];
+    case 0x3c5: case 0x3cf: return vga_planar_in(port);   /* the sequencer, the graphics controller */
     case 0x40: {
         if (pit.latch < 0) pit.latch = pit_count(), pit.read_hi = false;
         if (!pit.read_hi) { pit.read_hi = true; return (uint8_t)pit.latch; }
@@ -123,15 +123,17 @@ uint8_t io_in8(uint16_t port)
 
 void io_out8(uint16_t port, uint8_t v)
 {
-    if (hooks) { hooks->out8(port, v); return; }
+    if (hooks) {
+        hooks->out8(port, v);
+        /* the planes' registers decide what a write to A000 does: kept while the ports are replayed */
+        if (vga_planar_port(port)) vga_planar_out(port, v);
+        return;
+    }
     switch (port) {
     case 0x3c8: vga.dac_w = v * 3; break;
     case 0x3c7: vga.dac_r = v * 3; break;
     case 0x3c9: vga.dac[vga.dac_w] = v & 0x3f, vga.dac_w = (vga.dac_w + 1) % 768; break;
-    case 0x3c4: vga.seq_idx = v & 7; break;
-    case 0x3c5: vga.seq[vga.seq_idx & 7] = v; break;
-    case 0x3ce: vga.gc_idx = v & 15; break;
-    case 0x3cf: vga.gc[vga.gc_idx & 15] = v; break;
+    case 0x3c4: case 0x3c5: case 0x3ce: case 0x3cf: vga_planar_out(port, v); break;
     case 0x3d4: vga.crtc_idx = v; break;
     case 0x3d5: vga.crtc[vga.crtc_idx] = v; break;
     case 0x3c0:
@@ -226,15 +228,17 @@ static void deliver(uint8_t vec)
 
 /* ---- time ---- */
 
-static uint8_t screen[320 * 200];
+static uint8_t screen[640 * 480];
 static uint8_t pal8[768];
 
 static void present(void)
 {
     for (int i = 0; i < 768; i++) pal8[i] = (uint8_t)(vga.dac[i] << 2 | vga.dac[i] >> 4);
-    if (vga.mode == 0x13) memcpy(screen, mem_ptr(SEG_VGA, 0), sizeof screen);
-    else memset(screen, 0, sizeof screen);   /* the text and planar modes: the code card's (FONT.BIN) */
-    plat_present(screen, 320, 200, 320, pal8);
+    int w = 320, h = 200;
+    if (vga.mode == 0x13) memcpy(screen, mem_ptr(SEG_VGA, 0), 320 * 200);
+    else if (!vga_planar_render(vga.mode, vga.attr, vga.crtc, screen, &w, &h))   /* 0Dh, 0Eh, 10h, 12h */
+        memset(screen, 0, 320 * 200);                                           /* text: not shown */
+    plat_present(screen, w, h, w, pal8);
 }
 
 void mach_frame(void)
@@ -277,10 +281,25 @@ void vga_wait_retrace_end(void)
     vga.retrace = false;
 }
 
-/* int 10h's view of the devices (bios.c). */
-void mach_set_mode(uint8_t mode)
+/* int 10h's view of the devices (bios.c). A mode set leaves the registers as the harness's does
+   (tools/emu/dos.py, int10): the CRTC's offset (13h) and start address, the planes' registers; the other
+   modes than 13h get the EGA palette in the attribute registers and the first 64 DAC entries (EGA colour
+   i: red from bits 2 and 5, green from 1 and 4, blue from 0 and 3, 42 and 21 each). */
+void mach_set_mode(uint8_t mode, bool clear)
 {
     vga.mode = mode;
     vga.dac_w = vga.dac_r = 0;
+    vga.crtc[0x13] = 40;
+    vga.crtc[0x0c] = vga.crtc[0x0d] = 0;
+    if (mode != 0x13) {
+        for (int i = 0; i < 64; i++) {
+            vga.dac[3 * i] = (uint8_t)((i >> 2 & 1) * 42 + (i >> 5 & 1) * 21);
+            vga.dac[3 * i + 1] = (uint8_t)((i >> 1 & 1) * 42 + (i >> 4 & 1) * 21);
+            vga.dac[3 * i + 2] = (uint8_t)((i & 1) * 42 + (i >> 3 & 1) * 21);
+        }
+        for (int c = 0; c < 16; c++) vga.attr[c] = (uint8_t)(c == 6 ? 20 : c < 8 ? c : 48 + c);
+    }
+    vga_planar_mode(mode, clear);
 }
 uint8_t *mach_dac_rw(void) { return vga.dac; }
+uint8_t *mach_attr_rw(void) { return vga.attr; }

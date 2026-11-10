@@ -7,6 +7,8 @@
 #include "mem.h"
 #include "pending.h"
 #include "sound/sound.h"
+#include "protect/font.h"
+#include "platform.h"
 
 /* The sound drivers (src/sound/, docs/re/sound.md): DRIVER1.BIN (the AdLib) and DRIVER2.BIN (the beeper)
    are recognised by their far entry (call 0094 / call 00F7, retf) and a CRC-32 of their code as loaded
@@ -32,7 +34,13 @@ void drv_call(void)
         return;
     }
     if (p[0] == 0x50 && p[1] == 0x53 && p[2] == 0x51 && p[3] == 0x52) {   /* FONT.BIN */
-        PENDING_NOTE(0x24240000, "CodeCard_Check (FONT.BIN): passed without the card");
+        /* the code card (src/protect/font.c): asked only with --param codecard=1; by default passed at
+           once, as the port has done so far (the user's decision on the default is pending) */
+        char v[8];
+        if (plat_param("codecard", v, sizeof v) && v[0] == '1') {
+            Card_Check();
+            return;
+        }
         R.ax = 0;
         return;
     }

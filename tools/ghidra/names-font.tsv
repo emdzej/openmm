@@ -1,0 +1,16 @@
+# addr	name	module	confidence	description (FONT.BIN at 2424:0000; offsets in the file)
+2424:0000	Card_Check	protect	medium	
+2424:0190	Card_Ask	protect	medium	
+2424:033c	Card_SetMode	protect	medium	
+2424:0352	Card_SetPalette	protect	medium	
+2424:036c	Card_SetAttr	protect	medium	
+2424:0385	Card_Fill	protect	medium	
+2424:03ac	Card_SetStart	protect	medium	
+2424:03bc	Card_ClearText	protect	medium	
+2424:03c6	Card_FillBack	protect	medium	
+2424:03d0	Card_ShowQuestion	protect	medium	
+2424:04d4	Card_Sprite	protect	medium	
+2424:04f7	Card_SpriteFar	protect	medium	
+2424:05b3	Card_CopyBox	protect	medium	
+2424:05ee	Card_DrawMask	protect	medium	
+2424:0640	Card_BuildMask	protect	medium	
