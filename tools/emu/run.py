@@ -39,6 +39,7 @@ def main():
     ap.add_argument('--frames', type=int, default=300)
     ap.add_argument('--keys', default='')
     ap.add_argument('--shots', type=int, default=0)
+    ap.add_argument('--dump-at', default='', help='frames: the 1 MB memory of each to <out>/mem_<frame>.bin (as mm_run --dump)')
     ap.add_argument('--shot-at', default='', help='frames (as --hashes numbers them, and mm_run --shot): a PNG of each')
     ap.add_argument('--coverage', action='store_true')
     ap.add_argument('--log', action='store_true')
@@ -46,7 +47,7 @@ def main():
     ap.add_argument('--skip-card', action='store_true', help="don't run FONT.BIN: its pass at once (reference runs only)")
     ap.add_argument('--out', default='out/emu')
     ap.add_argument('--poke-at', default='1000:3039', help='where --poke writes (default Race_Main)')
-    ap.add_argument('--poke-when', default='', help='seg:off=hex/seg:off=hex,...: each time the bytes come to match, write (frame ends)')
+    ap.add_argument('--poke-when', action='append', default=[], help='cond&cond.../seg:off=hex,... (cond = seg:off=hex): each time the conditions come to hold, write (frame ends); repeatable, tested in order')
     ap.add_argument('--poke', default='', help='seg:off=hex,... written at each --poke-at (other tracks)')
     ap.add_argument('--hashes', action='store_true',
                     help="each frame's picture hashed as build/mm_run --hashes does (mode 13h: indices, DAC)")
@@ -72,28 +73,31 @@ def main():
     per_frame = int(dos.FRAME_TICKS / (dos.SLICE * dos.TICKS_PER_INSN))
     frame = 0
     shot_at = {int(x) for x in a.shot_at.split(',') if x}
-    when, when_held = None, False
-    if a.poke_when:   # the same as mm_run --poke-when: a condition, then the writes, at a frame's end, each time it comes to hold
-        def lin_bytes(kv):
-            addr, hexb = kv.split('=')
-            seg, off = (int(x, 16) for x in addr.split(':'))
-            return seg * 16 + off, bytes.fromhex(hexb)
-        cond, acts = a.poke_when.split('/')
-        when = (lin_bytes(cond), [lin_bytes(x) for x in acts.split(',')])
+    dump_at = {int(x) for x in a.dump_at.split(',') if x}
+    whens = []        # [conditions, writes, held]: the same as mm_run --poke-when, in order
+    def lin_bytes(kv):
+        addr, hexb = kv.split('=')
+        seg, off = (int(x, 16) for x in addr.split(':'))
+        return seg * 16 + off, bytes.fromhex(hexb)
+    for spec in a.poke_when:
+        cond, acts = spec.split('/')
+        whens.append([[lin_bytes(c) for c in cond.split('&')], [lin_bytes(x) for x in acts.split(',')], False])
     try:
         for frame in range(a.frames):
             m.key_queue.extend(keys.get(frame, []))
             m.step(per_frame)
-            if when:   # each time the condition comes to hold (re-armed while it does not)
-                hold = m.rd(when[0][0], len(when[0][1])) == when[0][1]
-                if hold and not when_held:
-                    for lin, b in when[1]:
+            for w in whens:   # each time its conditions come to hold (re-armed while they do not)
+                hold = all(m.rd(lin, len(b)) == b for lin, b in w[0])
+                if hold and not w[2]:
+                    for lin, b in w[1]:
                         m.wr(lin, b)
-                when_held = hold
+                w[2] = hold
             if a.hashes:
                 print('%d %08x' % (frame, picture_hash(m)), flush=True)
             if a.shots and (frame + 1) % a.shots == 0 and m.video_mode in (0x0d, 0x10, 0x12, 0x13):
                 dos.write_png(os.path.join(a.out, 'f%05d.png' % (frame + 1)), *m.frame())
+            if frame in dump_at:
+                open(os.path.join(a.out, 'mem_%d.bin' % frame), 'wb').write(m.rd(0, 0x100000))
             if frame in shot_at:
                 dos.write_png(os.path.join(a.out, 'at%05d.png' % frame), *m.frame())
     except dos.Exit as e:

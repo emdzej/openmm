@@ -111,8 +111,8 @@ opponents' picks and the whole first challenge race. 1004 of the port's 1025 pic
 original's sequence in order; the rest are the beat, the load time and the start's blink in the other
 phase (player 1's car shown in one and not the other, checked with `--shot-at`). Keys must not fall
 inside a race: Enter is player 1's select key there, and it lands at another moment of each.
-`--poke-when cond/writes` (run.py and mm_run alike) tests the condition bytes at each frame's end and
-writes each time they come to match.
+`--poke-when cond&cond.../writes` (run.py and mm_run alike, repeatable, tested in order) tests the
+conditions at each frame's end and writes each time they come to hold.
 
 GAME OPTIONS' screens (`out/options_keys.txt`: F6 the credits and a key back, F4 twice, F3, F5 REDEFINE
 KEYS with ten letters 60 frames apart, Enter; 2,600 frames): all 21 of the port's distinct pictures
@@ -122,3 +122,16 @@ The poke is tested at frame ends, which fall at another phase of the game steps 
 the port, so a race ended by it can end one step apart: one labelled picture more or less before the
 race's 100-step end countdown runs out (seen at the second race of the series). Enter during a race
 changes nothing in either (checked both ways).
+
+A whole championship (`out/champ_keys.txt`: accelerate held, Enter every 200 frames from 2000) with three
+pokes, so that every race ends at its start and no key reaches a race:
+
+    --poke-when "193c:12ed=0300&193c:28bf=09/193c:12ed=0200,193c:1070=00"   # a bonus race: course done
+    --poke-when "193c:12ed=0300/193c:12ed=0000,193c:1070=00"                # a race: player 1 finished
+    --poke-when "193c:26cc=0000/193c:1070=1c"                               # after it: select is Enter again
+
+(laps-to-go 3 is written by the set-up and holds until a lap, so both runners see it at a frame end;
+`[1070]` is player 1's select key, which in a race is fire and skips the pedals: an Enter that lands
+while a car accelerates changes the race.) Over 16,000 frames, 2613 of the port's 2850 pictures appear
+in the original's sequence in order: the qualifier, the challenge races, the bonus race, the results
+and EXTRA LIFE screens.

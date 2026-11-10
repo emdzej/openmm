@@ -4,8 +4,8 @@
      build/mm_run [--data game] [--frames 300] [--keys 120:1c,124:9c] [--hashes] [--dump 100,200]
                   [--shot 100] [--out out/run]
    --keys: frame:scancode in hex (80h set = release, 100h = the E0 prefix); --hashes: one line per frame,
-   "frame fnv32"; --gamepad f:x,y,hexbuttons;...: a controller in slot 0; --param name=value as gasm's (splash=0: no SM.EXE, codecard=1); --dump: out/run/mem_<frame>.bin; --shot: a PPM of the port's frame; --wav: the sound; --poke-when seg:off=hex/seg:off=hex,...: each time the first bytes come to
-   match, the others are written (at a frame's end, as tools/emu/run.py's),
+   "frame fnv32"; --gamepad f:x,y,hexbuttons;...: a controller in slot 0; --param name=value as gasm's (splash=0: no SM.EXE, codecard=1); --dump: out/run/mem_<frame>.bin; --shot: a PPM of the port's frame; --wav: the sound; --poke-when cond&cond/seg:off=hex,... (cond seg:off=hex; repeatable): each time
+   the conditions come to hold, the writes are made (at a frame's end, as tools/emu/run.py's),
    44.1 kHz 16-bit stereo. The game's settings (SETTINGS.DAT, as the user's storage) are read from
    <out>/writes/ first, so a run can choose the sound device. */
 #include "app.h"
@@ -28,11 +28,11 @@ static int nkeys;
 static uint8_t last_px[320 * 200], last_pal[768];
 static uint32_t video_hash = 2166136261u, audio_hash = 2166136261u;
 static FILE *wav, *opl_log;
-/* --poke-when: each time the bytes at cond come to match, write the others (at a frame's end, as
-   run.py does) */
-static struct { uint32_t lin; uint8_t b[16]; int n; } when_cond, when_act[8];
-static int n_when_act = -1;
-static bool when_held;
+/* --poke-when cond&cond.../writes (repeatable, tested in order): each time the conditions come to hold,
+   the writes are made (at a frame's end, as run.py does) */
+typedef struct { uint32_t lin; uint8_t b[16]; int n; } LinBytes;
+static struct { LinBytes cond[4], act[8]; int ncond, nact; bool held; } whens[8];
+static int nwhens;
 static void log_opl(uint8_t idx, uint8_t v) { fprintf(opl_log, "%d %x %x\n", frame, idx, v); }
 static uint32_t wav_frames;
 static double audio_acc;
@@ -170,11 +170,13 @@ void plat_wait_frame(void)
             FILE *f = fopen(p, "wb");
             if (f) fwrite(g_mem, 1, MEM_SIZE, f), fclose(f);
         }
-    if (n_when_act >= 0) {
-        bool hold = !memcmp(g_mem + when_cond.lin, when_cond.b, (size_t)when_cond.n);
-        if (hold && !when_held)
-            for (int i = 0; i < n_when_act; i++) memcpy(g_mem + when_act[i].lin, when_act[i].b, (size_t)when_act[i].n);
-        when_held = hold;
+    for (int w = 0; w < nwhens; w++) {
+        bool hold = true;
+        for (int i = 0; i < whens[w].ncond; i++)
+            if (memcmp(g_mem + whens[w].cond[i].lin, whens[w].cond[i].b, (size_t)whens[w].cond[i].n)) hold = false;
+        if (hold && !whens[w].held)
+            for (int i = 0; i < whens[w].nact; i++) memcpy(g_mem + whens[w].act[i].lin, whens[w].act[i].b, (size_t)whens[w].act[i].n);
+        whens[w].held = hold;
     }
     frame++;
     if (frame >= frames_max) {
@@ -193,7 +195,7 @@ static const char *lin_bytes(const char *s, uint32_t *lin, uint8_t *b, int *n)
     *lin = seg * 16 + off;
     s += k;
     *n = 0;
-    while (*n < 16 && s[0] && s[1] && s[0] != ',' && s[0] != '/') {
+    while (*n < 16 && s[0] && s[1] && s[0] != ',' && s[0] != '/' && s[0] != '&') {
         unsigned v;
         if (sscanf(s, "%2x", &v) != 1) return NULL;
         b[(*n)++] = (uint8_t)v, s += 2;
@@ -229,14 +231,19 @@ int main(int argc, char **argv)
                 if (sscanf(p, "%d:%f,%f,%x", &pad[npad].frame, &pad[npad].x, &pad[npad].y, &pad[npad].buttons) == 4) npad++;
             i++;
         }
-        else if (!strcmp(a, "--poke-when") && v) {
-            const char *p = lin_bytes(v, &when_cond.lin, when_cond.b, &when_cond.n);
-            n_when_act = 0;
-            while (p && *p && n_when_act < 8) {
-                p++;   /* '/' or ',' */
-                p = lin_bytes(p, &when_act[n_when_act].lin, when_act[n_when_act].b, &when_act[n_when_act].n);
-                if (p) n_when_act++;
+        else if (!strcmp(a, "--poke-when") && v && nwhens < 8) {
+            const char *p = v;
+            bool acts = false;
+            while (p && *p) {
+                LinBytes *d = acts ? &whens[nwhens].act[whens[nwhens].nact] : &whens[nwhens].cond[whens[nwhens].ncond];
+                p = lin_bytes(p, &d->lin, d->b, &d->n);
+                if (!p) break;
+                if (acts) { if (whens[nwhens].nact < 7) whens[nwhens].nact++; }
+                else if (whens[nwhens].ncond < 3) whens[nwhens].ncond++;
+                if (*p == '/') acts = true;
+                if (*p) p++;
             }
+            nwhens++;
             i++;
         }
         else if (!strcmp(a, "--opl-log") && v) {
