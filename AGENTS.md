@@ -32,6 +32,8 @@ the default hashes unchanged.
 
 - 2026-11-10: the standard ENCORE approach, a function-by-function port of `MICRO.EXE` (and of `SM.EXE`,
   `MICRO.COM`'s order and the sound driver), site at openmm.emdzej.pl, an exhibit on the ENCORE site.
+- 2026-11-10: the code card is off by default (the one exception to "the default is the original"):
+  `--param codecard=1` asks for the symbol as the original does. The default hashes are taken without it.
 
 ## State
 
