@@ -158,6 +158,31 @@ blink flag's phase again (checked with `--shot-at`).
 
 The port alone plays the whole championship this way (`out/full_keys.txt`, 60,000 frames): the races to
 the last, "WIN THIS RACE TO BE CHAMPION", CHAMPIONSHIP WINNER!! and back to SELECT GAME, with no
-PENDING_NOTE. The two-player tournament cannot be driven like this: with player 1's laps cleared a race
-goes to its play-off and no one scores; with only player 1 driving, the helicopters' race (theme 8)
-leaves both on screen against a wall. It needs steering keyed to the race, not to frames.
+PENDING_NOTE.
+
+The two-player tournament (`out/tour_keys.txt`: the two-player keys to CHOOSE GAME, TOURNAMENT, up held
+from 3300, Enter and G in turn every 100 frames; 6,000 frames) with four pokes on both runners:
+
+    --poke-when "193c:1070=1c/193c:09ba=0a0a0a0a0a0a0a0a"      # every race on one track
+    --poke-when "193c:26b4=0400/193c:26b4=0700"                # the point bar at 7: player 1's first point wins
+    --poke-when "193c:26c6=0000&193c:26cc=6400/193c:1070=00,193c:1078=00,193c:107c=0020"
+    --poke-when "193c:26c6=0200/193c:1070=1c,193c:1078=22"     # select keys off while a race runs
+
+985 of the port's 1090 pictures appear in the original's sequence in order: four races, the results
+between them and the last race's end. What each poke is for:
+
+- `Menu_TwoPlayerTournament` (1000:1faf) draws each race's track from the low three bits of the tick
+  counter `[0002]`, which counts from the last key wait: a timing-dependent draw, so the two runners
+  choose different tracks, and a race on another track leaves other state for the next. The table at
+  `[09ba]` (eight bytes, theme << 2 | track - 1) is static; filled with one entry, every draw gives it.
+- Enter and G are the players' select keys, fire in a race. The key-off poke also sets the held-key bits
+  `[107c]` to up alone: a select key cleared while held keeps its bit, as `Key_Irq` (1000:2efd) matches
+  the release against the table and finds nothing, so fire stays held and the pedals are skipped. In a
+  two-player race the end countdown `[26cc]` is not run (it stays 64h from the set-up), so the race's
+  start is the over flag `[26c6]` going back to 0 with it, and its end `[26c6]` = 2. A condition that
+  holds through from one race to the next (laps-to-go 3 with 64h) never comes to hold again and fires
+  at another moment in each runner.
+
+The remaining differences are the load time, the beat and the blink flag: "Winner" flashes black and
+white with it, and the character picker after the tournament keeps or clears its prompt by it, after
+which the menu keys meet other moments and the runs part.
