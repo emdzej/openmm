@@ -216,6 +216,23 @@ class Machine:
         self.log('far call 2424:0000 ax=%04x from %04x:%04x (overlay starts %s)' % (
             self.r('AX'), cs, (ip - 5) & 0xffff, self.rd(0x24240, 4).hex()))
 
+    def add_pokes(self, at, spec):
+        """Reference runs that reach other tracks: each time execution reaches `at` (seg:off), write the
+        bytes of `spec` ("seg:off=hex,seg:off=hex", e.g. 193c:28bf=05,193c:28c0=02 at 1000:3039, Race_Main:
+        the theme and track Race_RunOne chose, before Race_Setup loads them)."""
+        writes = []
+        for kv in filter(None, spec.split(',')):
+            addr, hexb = kv.split('=')
+            seg, off = (int(x, 16) for x in addr.split(':'))
+            writes.append((seg * 16 + off, bytes.fromhex(hexb)))
+        seg, off = (int(x, 16) for x in at.split(':'))
+
+        def poke(mu, addr, size, _):
+            for lin, b in writes:
+                self.wr(lin, b)
+            self.log('poked %s at %s' % (spec, at))
+        self.mu.hook_add(unicorn.UC_HOOK_CODE, poke, None, seg * 16 + off, seg * 16 + off)
+
     def _skip(self, mu, addr, size, _):
         # Start's code-card call (1000:3215, lcall 2424:0000 with FONT.BIN loaded): "passed", at once
         if self.skip_card and self.rd(0x24240, 4) == b'PSQR':

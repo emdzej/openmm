@@ -131,5 +131,6 @@ Recorded in the harness (first race of the one-player game: theme 2, track 1; ke
 and below) and passing `build/mm_fncheck`: see the commit messages. The key script that reaches the race:
 Enter pressed at frames 100, 200, ..., 900 and released 5 frames later
 (`100:1c,105:9c,200:1c,205:9c,...,900:1c,905:9c`, `--skip-card`); `Race_Setup` runs at frame ~714.
-Other themes and tracks were recorded with the state poked into the original before `Race_Main`
-(a wrapper around `tools/emu/capture.py` that writes `[28bf]` / `[28c0]` at 1000:3039; not in the repo).
+Other themes and tracks are recorded with the state poked into the original at `Race_Main` 1000:3039,
+before `Race_Setup` loads the track: `--poke 193c:28bf=05,193c:28c0=01` (theme, track; `--poke-at`
+chooses another address) on `tools/emu/run.py` and `tools/emu/capture.py`.

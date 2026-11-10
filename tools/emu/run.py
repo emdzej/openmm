@@ -44,6 +44,8 @@ def main():
     ap.add_argument('--code-card', action='store_true', help="answer FONT.BIN's check (reference runs only)")
     ap.add_argument('--skip-card', action='store_true', help="don't run FONT.BIN: its pass at once (reference runs only)")
     ap.add_argument('--out', default='out/emu')
+    ap.add_argument('--poke-at', default='1000:3039', help='where --poke writes (default Race_Main)')
+    ap.add_argument('--poke', default='', help='seg:off=hex,... written at each --poke-at (other tracks)')
     ap.add_argument('--hashes', action='store_true',
                     help="each frame's picture hashed as build/mm_run --hashes does (mode 13h: indices, DAC)")
     a = ap.parse_args()
@@ -53,6 +55,8 @@ def main():
     m = dos.Machine(os.path.join(a.data, a.exe), a.data, os.path.join(a.out, 'writes'), log=log)
     m.code_card = a.code_card
     m.skip_card = a.skip_card
+    if a.poke:
+        m.add_pokes(a.poke_at, a.poke)
     keys = {}
     for kv in filter(None, a.keys.split(',')):
         f, c = kv.split(':')

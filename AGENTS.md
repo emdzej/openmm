@@ -40,10 +40,11 @@ the default hashes unchanged.
 All live routines of `MICRO.EXE` are ported, with `SM.EXE` (the splash), `MICRO.COM`'s order, the sound
 drivers (DRIVER1/2, an OPL2 model, the speaker) and FONT.BIN (the code card, behind `--param codecard=1`).
 `build/gen/unported.txt` lists the dead routines left. The port plays from the splash through the menus
-into one- and two-player races headless (`build/mm_run`). Checked against the original: 114 routines
+into one- and two-player races headless (`build/mm_run`). Checked against the original: 143 routines
 (`tools/emu/capture.py @<list> --hit 1,3,30 --skip-card --keys $(cat out/race_keys.txt)` then
 `build/mm_fncheck out/fn/*/`; `out/race_keys.txt` reaches the Powerboats qualifier, `out/h2h_keys.txt`
-a two-player Formula One race: player two selects with G, keys 2). The harness's menus run slower than
+a two-player Formula One race: player two selects with G, keys 2; `--poke 193c:28bf=0N,193c:28c0=0M`
+puts the race on theme N, track M). The harness's menus run slower than
 the port's, so its key scripts have their own timings. Next: wider checks (championship, every theme,
 longer races) and whole-run comparisons for the routines that wait on the timer. Machine model:
 docs/re/architecture.md; method: docs/re/porting.md; map: docs/re/functions.md.
