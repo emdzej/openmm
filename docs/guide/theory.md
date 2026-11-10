@@ -36,6 +36,12 @@ This is why the port keeps the original's loops instead of restructuring the gam
 frame: each loop spins on memory the interrupt handlers change, and the port makes the frame boundary
 the place where the handlers run.
 
+Two things escape the clock. The fades between screens write the whole palette to the video card 126
+or 128 times with no wait at all, and the champion's screen slides its texts in with no wait between
+steps: both last as long as the machine takes, a fraction of a second for a fade on a PC of the day.
+A port with a CPU that costs nothing has to give that time back, or the fades vanish and the last
+screen of the game appears already finished.
+
 ## Memory
 
 The game sizes nothing at run time. Its data segment holds the variables, the tables and the small
