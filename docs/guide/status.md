@@ -18,7 +18,7 @@ OpenMM **runs the game's menus and races, with sound**. As of 10 November 2026:
   are rewritten too. They drive a model of the AdLib's sound chip written for the port, and a model of
   the speaker. The music and effects the drivers send to the chip match the original's, write for write.
 - **How it is checked.** Each routine is run against recordings of the original program: the same
-  memory, registers, port accesses and DOS calls. 143 routines pass so far; the others are not yet
+  memory, registers, port accesses and DOS calls. 151 routines pass so far; the others are not yet
   reached by the recorded runs, or wait for the timer and are checked through whole runs.
 
 ## Opt-in
