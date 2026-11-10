@@ -13,6 +13,7 @@
 #include "game.h"
 #include "machine.h"
 #include "mem.h"
+#include "segs.h"
 #include "routines.h"
 
 /* The title tune: AH = 9 asks whether tune AL can play, AH = 4 plays it. AX comes back as it was (the
@@ -144,7 +145,7 @@ void Menu_LoadFrontEnd(void)
     R.ds = SEG_DATA;
     uint16_t ds = R.ds;
     R.si = 0x09f0;
-    R.dx = 0x1b78;
+    R.dx = SEG_TILES;
     Unpack_LoadSeries();
     R.ds = ds;
     R.bx = 0x0b7c;

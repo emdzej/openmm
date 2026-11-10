@@ -70,6 +70,7 @@ static const char *const regname[] = {"ax", "bx", "cx", "dx", "si", "di", "bp", 
 /* R against a recorded line: the general registers and the segments, CF (ZF/SF when strict). */
 static int strict_flags;
 static bool skip_bp;   /* a call's inputs: BP only where the service reads it (int 10h 1301h: ES:BP) */
+static bool skip_cf;   /* an int's or the driver's inputs: no service reads CF */
 static void cmp_regs(const RegLine *r, const char *when)
 {
     uint16_t got[] = {R.ax, R.bx, R.cx, R.dx, R.si, R.di, R.bp, R.sp, R.ds, R.es, R.ss};
@@ -82,7 +83,7 @@ static void cmp_regs(const RegLine *r, const char *when)
         }
     }
     uint16_t f = r->v[FL_];
-    if (R.cf != (f & 1)) err("%s CF: port %u, original %u", when, R.cf, f & 1);
+    if (!skip_cf && R.cf != (f & 1)) err("%s CF: port %u, original %u", when, R.cf, f & 1);
     if (R.zf != ((f >> 6) & 1)) {
         if (strict_flags) err("%s ZF: port %u, original %u", when, R.zf, (f >> 6) & 1);
         else printf("  %s: note: %s ZF port %u, original %u\n", who, when, R.zf, (f >> 6) & 1);
@@ -127,8 +128,9 @@ static void r_out8(uint16_t port, uint8_t v)
 static void apply(Event *e, const char *what, bool bp_used)
 {
     skip_bp = !bp_used;
+    skip_cf = e->kind == 'N' || e->kind == 'D';
     cmp_regs(&e->pre, what);
-    skip_bp = false;
+    skip_bp = skip_cf = false;
     uint16_t bp = R.bp;
     for (int i = 0; i < e->mcount; i++) {
         Span *s = &spans[e->mfirst + i];

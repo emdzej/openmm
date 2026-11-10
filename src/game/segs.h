@@ -3,7 +3,7 @@
    segment a relocated operand in the code names (docs/re/race-setup.md has the layouts). */
 #pragma once
 enum {
-    SEG_TILES = 0x2b78,   /* the track's graphic tiles, 16 x 16 bytes each, tile n at 2b78 + 10h n */
+    SEG_TILES = 0x2b78,   /* the decoder's big output: the front end's pictures, BITSFILE, the track's tiles (16 x 16 at 2b78 + 10h n) */
     SEG_MAP = 0x4b78,     /* the track map, 192 x 192 words (rows 96.. at 5478) */
     SEG_MAP2 = 0x5478,
     SEG_CARS = 0x5d78,    /* the vehicles' pictures: 32 directions */

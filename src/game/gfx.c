@@ -497,9 +497,9 @@ void Gfx_LoadBits(void)
     Cpu saved = R;
     R.ds = SEG_DATA;
     R.si = 0x1231;
-    R.dx = 0x1b78;
+    R.dx = SEG_TILES;
     Unpack_LoadSeries();
-    R.ds = 0x1b78;
+    R.ds = SEG_TILES;
     R.es = SEG_DATA;
     R.si = 0;
     R.di = 0x3fe3;
