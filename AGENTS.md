@@ -35,10 +35,13 @@ the default hashes unchanged.
 
 ## State
 
-Step 0 of `docs/re/port-plan.md` is done: the floppy image and folders (`src/vfs.c`), the exe check, the
-PKLITE stub (`src/pklite.c`), the gasm skeleton (a blank 320 x 200 frame). Next: step 1, reading the
-whole program. `grep -rn PENDING_NOTE src` is the to-do list; `docs/guide/status.md` is the public
-record. Read `docs/re/port-plan.md`, `docs/re/architecture.md` and `docs/re/inventory.md`.
+Steps 0-2 of `docs/re/port-plan.md` are done: the file layer, the PKLITE stub, the full map of the program
+(243 routines named in `tools/ghidra/names.tsv`, modules and work packages in `docs/re/functions.md`), the
+machine (`src/mem.c`, `src/machine.c`, `src/dos.c`, `src/bios.c`) and the porting method: register-exact
+routines in `src/game/`, each checked alone against recordings of the original (`docs/re/porting.md`:
+`tools/emu/capture.py`, `build/mm_fncheck`). The gasm build keeps the original's loops (LOOP). Ported and
+checked so far: the timer, the keyboard handler, `Copy_Patch32`; the rest of the packages are in progress.
+`build/gen/unported.txt` (generated) is the to-do list; `docs/guide/status.md` is the public record.
 
 ## Hard rules
 
@@ -93,9 +96,10 @@ results. An installed copy (`C:\MICROM`, INSTALL.DAT) has the same files and lay
 
 ```sh
 cmake -S . -B build && cmake --build build && ctest --test-dir build      # native: tests and tools
-tools/fetch-gasm-sdk.sh                         # here .deps may be a symlink to ../opencmr2/.deps (the same pins)
+tools/fetch-gasm-sdk.sh                         # here .deps may be a symlink to ../openoni/.deps (the same pins)
 cmake -S . -B build-gasm -DOPENMM_PLATFORM=gasm -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_TOOLCHAIN_FILE=.deps/gasm-c-sdk/cmake/gasm-toolchain.cmake -DWASI_SDK_PREFIX="$PWD/.deps/wasi-sdk"
+  -DCMAKE_TOOLCHAIN_FILE=.deps/gasm-c-sdk/cmake/gasm-toolchain.cmake -DWASI_SDK_PREFIX="$PWD/.deps/wasi-sdk" \
+  -DGASM_WASM_OPT="$PWD/.deps/binaryen/bin/wasm-opt"
 cmake --build build-gasm                                                  # -> build-gasm/openmm.wasm
 ```
 
@@ -111,8 +115,8 @@ RUN=.deps/gasm-runner-macos-universal/gasm-run
 $RUN build-gasm/openmm.wasm --asset disk=$IMG --headless 60 --mute       # folder: --asset-dir game
 ```
 
-Expected (step 0): `video_fnv32=465a5dc5 audio_fnv32=1689af25 audio_frames=37799` for 60 frames, identical
-for the folder and the image. A change that alters a hash must be explained by the change: say which
+The step-0 baseline (a blank frame) is gone: the program now runs from its entry. New baselines are
+recorded as the port reaches its first screens. A change that alters a hash must be explained by the change: say which
 hash moved and why in the commit body, check it with a screenshot, and re-baseline in the same commit.
 
 ## Reverse engineering
