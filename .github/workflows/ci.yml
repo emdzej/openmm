@@ -1,0 +1,74 @@
+name: CI
+
+# Builds the native core, the tests and the tools, and the gasm module openmm.wasm, on each push / PR.
+# The tests need the original game data (not redistributable): without it they skip, so CI runs them as
+# a smoke test only. Run them locally with your copy of the game (OPENMM_DATA, default ./game).
+# Bundles and releases come later (docs/re/port-plan.md): nothing is packaged yet.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native:
+    strategy:
+      matrix:
+        include:
+          - { os: macos-latest, cc: clang }
+          - { os: ubuntu-latest, cc: gcc }
+          - { os: ubuntu-latest, cc: clang }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_C_FLAGS=-Werror
+      - name: build (core, tests, tools)
+        run: cmake --build build -j
+      - name: tests (skip without game data)
+        run: ctest --test-dir build --output-on-failure
+      - name: check Python tools compile
+        run: find tools -name '*.py' -exec python3 -m py_compile {} +
+
+  wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The SDK version lives in tools/fetch-gasm-sdk.sh (GASM_VERSION).
+      - name: fetch wasi-sdk and the gasm C SDK
+        run: tools/fetch-gasm-sdk.sh
+      - name: configure (gasm)
+        run: >-
+          cmake -S . -B build-gasm -DOPENMM_PLATFORM=gasm -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-Werror
+          -DCMAKE_TOOLCHAIN_FILE=.deps/gasm-c-sdk/cmake/gasm-toolchain.cmake
+          -DWASI_SDK_PREFIX="$PWD/.deps/wasi-sdk"
+      - name: build openmm.wasm
+        run: |
+          cmake --build build-gasm -j
+          ls -l build-gasm/openmm.wasm
+      - name: without data it refuses to start (exit 1, "game data not found")
+        run: |
+          RUN="$(tools/fetch-gasm-runner.sh linux-x86_64)/gasm-run"
+          sudo apt-get update -qq && sudo apt-get install -y -qq libasound2t64
+          set +e
+          out=$("$RUN" build-gasm/openmm.wasm --headless 5 --mute 2>&1); rc=$?
+          set -e
+          echo "$out"
+          test "$rc" = 1
+          echo "$out" | grep -q 'game data not found'
+      - name: upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openmm-wasm
+          path: build-gasm/openmm.wasm
+          retention-days: 14
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: shellcheck tools/*.sh tools/ghidra/*.sh

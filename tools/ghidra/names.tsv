@@ -1,0 +1,2 @@
+# addr	name	module	confidence	description
+1000:0006	Start	main	high	the entry: a start-up check, DS = 193c, SS:SP = 7d78:03e8, mode 13h, then the loop of 1000:0100 and 1000:0220; on the way out the video mode back and int 21h 4c00

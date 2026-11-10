@@ -1,0 +1,75 @@
+/* OpenMM theme: a toy box on the kitchen table.
+   - colours sampled from the game's VGA palette (INTRO.PAL): its pure red, yellow, blue and cyan;
+   - the navigation bar is a red and white kerb, the hero's track drawn procedurally (public/hero.svg);
+   - type: heavy rounded capitals for the headings (the toy packaging), plain sans for the text.
+   Light mode is a white tablecloth with near-black ink, the palette's blue for links. Dark mode is the
+   table at night: deep blue-black, yellow headings, cyan links. */
+
+:root {
+  --mm-red: #e00000;        /* INTRO.PAL's red, a shade deeper for contrast */
+  --mm-red-dark: #a80000;
+  --mm-yellow: #f6f600;     /* INTRO.PAL index 30 */
+  --mm-blue: #0000e0;       /* INTRO.PAL's blue */
+  --mm-cyan: #00a1ff;       /* INTRO.PAL index 131 */
+  --mm-ink: #14141c;
+  --mm-cloth: #fbfbf7;
+  --mm-cloth-2: #f1f1ea;
+  --mm-kerb: repeating-linear-gradient(90deg, var(--mm-red) 0 24px, #ffffff 24px 48px);
+
+  --vp-font-family-base: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --mm-display: "Arial Rounded MT Bold", "Arial Black", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  --vp-c-brand-1: var(--mm-blue);
+  --vp-c-brand-2: #0000a8;
+  --vp-c-brand-3: #2a2aff;
+  --vp-c-brand-soft: rgba(0, 0, 224, 0.1);
+
+  --vp-c-bg: var(--mm-cloth);
+  --vp-c-bg-alt: var(--mm-cloth-2);
+  --vp-c-bg-soft: var(--mm-cloth-2);
+  --vp-c-text-1: var(--mm-ink);
+
+  --vp-button-brand-bg: var(--mm-red);
+  --vp-button-brand-hover-bg: var(--mm-red-dark);
+  --vp-button-brand-active-bg: var(--mm-red-dark);
+  --vp-button-brand-text: #ffffff;
+  --vp-button-brand-hover-text: #ffffff;
+
+  --vp-home-hero-name-color: var(--mm-red);
+}
+
+.dark {
+  --mm-night: #0b0c1a;
+  --vp-c-brand-1: var(--mm-cyan);
+  --vp-c-brand-2: #5cc4ff;
+  --vp-c-brand-3: #0083d0;
+  --vp-c-brand-soft: rgba(0, 161, 255, 0.16);
+  --vp-c-bg: var(--mm-night);
+  --vp-c-bg-alt: #121427;
+  --vp-c-bg-soft: #161a30;
+  --vp-c-text-1: #f2f2ea;
+  --vp-home-hero-name-color: var(--mm-yellow);
+}
+
+/* the kerb under the navigation bar */
+.VPNav {
+  border-bottom: 8px solid transparent;
+  border-image: var(--mm-kerb) 8;
+}
+
+.vp-doc h1,
+.vp-doc h2,
+.VPHero .name,
+.VPFeature .title {
+  font-family: var(--mm-display);
+  letter-spacing: 0.01em;
+}
+
+.dark .vp-doc h1,
+.dark .vp-doc h2 {
+  color: var(--mm-yellow);
+}
+
+.VPHero .name {
+  text-transform: uppercase;
+}

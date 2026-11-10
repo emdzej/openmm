@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- OpenMM's mark: a toy car from above on a red and white kerb, in the palette's primaries -->
+  <rect x="2" y="2" width="60" height="60" rx="12" fill="#f6f600" stroke="#14141c" stroke-width="3"/>
+  <path d="M8 50 h12 v6 h-12z M32 50 h12 v6 h-12z" fill="#e00000"/>
+  <path d="M20 50 h12 v6 h-12z M44 50 h12 v6 h-12z" fill="#ffffff"/>
+  <rect x="8" y="50" width="48" height="6" fill="none" stroke="#14141c" stroke-width="2"/>
+  <rect x="20" y="9" width="24" height="36" rx="8" fill="#e00000" stroke="#14141c" stroke-width="3"/>
+  <rect x="24" y="16" width="16" height="9" rx="3" fill="#00a1ff" stroke="#14141c" stroke-width="2"/>
+  <rect x="24" y="31" width="16" height="7" rx="3" fill="#0000e0" stroke="#14141c" stroke-width="2"/>
+  <rect x="15" y="13" width="5" height="9" rx="2" fill="#14141c"/>
+  <rect x="44" y="13" width="5" height="9" rx="2" fill="#14141c"/>
+  <rect x="15" y="32" width="5" height="9" rx="2" fill="#14141c"/>
+  <rect x="44" y="32" width="5" height="9" rx="2" fill="#14141c"/>
+</svg>

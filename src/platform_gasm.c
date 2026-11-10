@@ -1,0 +1,406 @@
+/* gasm platform backend for openmm.wasm (gasm ABI 0, video_present, raw keyboard). The only file that
+   includes gasm.h. Exports: gasm_init (mount the data, app_init), gasm_frame (app_frame), gasm_exit.
+
+   Game data (the first that has MICRO.EXE):
+   - the floppy image as asset `disk` (gasm-run --asset disk=disk1.img: FAT12, read through
+     asset_read_at; `floppy` and `img` are accepted too);
+   - the floppy's files, or an installed game's, as assets named by their paths (gasm-run --asset-dir
+     <folder>: MICRO.EXE, GAME1/...). Names are tried as the game spells them (the runner's lookup is
+     exact; the player's OPFS import and gasm-run's folders keep the files' case).
+   The original opens paths like "..\BITSFILE.PH0" from GAME1: '\' -> '/', ".." resolved.
+   Carried from OpenCMR2, with its GL presentation replaced by OpenI76's 8-bit frame. */
+#include "app.h"
+#include "platform.h"
+#include "vfs.h"
+#include <gasm.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <time.h>
+#include <wasi/api.h>
+
+/* The window title (gasm 0.6 custom section, also readable by launchers without running the module). */
+GASM_TITLE("Micro Machines");
+
+_Static_assert(PAD_A == GASM_BTN_A && PAD_B == GASM_BTN_B && PAD_X == GASM_BTN_X && PAD_Y == GASM_BTN_Y &&
+               PAD_L == GASM_BTN_L && PAD_R == GASM_BTN_R && PAD_SELECT == GASM_BTN_SELECT &&
+               PAD_START == GASM_BTN_START && PAD_UP == GASM_BTN_UP && PAD_DOWN == GASM_BTN_DOWN &&
+               PAD_LEFT == GASM_BTN_LEFT && PAD_RIGHT == GASM_BTN_RIGHT, "PAD_* must be the gasm button bits");
+
+static uint32_t pads[4];
+
+void plat_log(const char *msg) { gasm_log(msg, (uint32_t)strlen(msg)); }
+uint32_t plat_pad(int player) { return player >= 0 && player < 4 ? pads[player] : 0; }
+
+static float lef32(const uint8_t *p)
+{
+    uint32_t u = (uint32_t)p[0] | p[1] << 8 | p[2] << 16 | (uint32_t)p[3] << 24;
+    float f;
+    memcpy(&f, &u, 4);
+    return f;
+}
+
+bool plat_gamepad(int slot, PlatGamepad *g)
+{
+    uint8_t b[GASM_GAMEPAD_BYTES];
+    memset(g, 0, sizeof *g);
+    if (slot < 0 || slot > 3 || gasm_gamepad((uint32_t)slot, b, sizeof b) != GASM_GAMEPAD_BYTES) return false;
+    uint32_t flags = (uint32_t)b[GASM_GAMEPAD_OFF_FLAGS] | b[GASM_GAMEPAD_OFF_FLAGS + 1] << 8;
+    if (!(flags & GASM_GAMEPAD_CONNECTED)) return false;
+    g->standard = (flags & GASM_GAMEPAD_STANDARD) != 0;
+    g->nbuttons = b[GASM_GAMEPAD_OFF_BUTTON_COUNT];
+    g->naxes = b[GASM_GAMEPAD_OFF_AXIS_COUNT];
+    if (g->nbuttons > GASM_GAMEPAD_BUTTONS) g->nbuttons = GASM_GAMEPAD_BUTTONS;
+    if (g->naxes > GASM_GAMEPAD_AXES) g->naxes = GASM_GAMEPAD_AXES;
+    for (int i = 0; i < GASM_GAMEPAD_BUTTONS; i++) g->button[i] = lef32(b + GASM_GAMEPAD_OFF_BUTTONS + 4 * i);
+    for (int i = 0; i < GASM_GAMEPAD_AXES; i++) g->axis[i] = lef32(b + GASM_GAMEPAD_OFF_AXES + 4 * i);
+    return true;
+}
+
+bool plat_param(const char *name, char *dst, size_t cap) { return gasm_param_str(name, dst, (uint32_t)cap); }
+static double frame_hz = APP_FRAME_HZ;
+void plat_set_frame_rate(double hz)
+{
+    frame_hz = hz;
+    gasm_set_frame_rate(hz);
+}
+void plat_present(const uint8_t *pixels, int w, int h, int pitch, const uint8_t pal[768])
+{
+    static uint32_t *rgba;
+    static size_t cap;
+    if (w <= 0 || h <= 0) return;
+    size_t n = (size_t)w * (size_t)h;
+    if (n > cap) {
+        uint32_t *b = realloc(rgba, n * sizeof *rgba);
+        if (!b) return;
+        rgba = b, cap = n;
+    }
+    uint32_t lut[256];
+    for (int i = 0; i < 256; i++)
+        lut[i] = 0xff000000u | (uint32_t)pal[3 * i + 2] << 16 | (uint32_t)pal[3 * i + 1] << 8 | pal[3 * i];
+    for (int y = 0; y < h; y++) {
+        const uint8_t *src = pixels + (size_t)y * (size_t)pitch;
+        uint32_t *dst = rgba + (size_t)y * (size_t)w;
+        for (int x = 0; x < w; x++) dst[x] = lut[src[x]];
+    }
+    gasm_video_present(rgba, (uint32_t)w, (uint32_t)h, (uint32_t)w * 4);
+}
+
+/* ---- raw keyboard (gasm 0.5) ---- */
+
+/* GASM_KEY_* (W3C KeyboardEvent.code) -> the set-1 scan code, 0x80 marking an extended (0xe0) key: the
+   DirectInput numbering of OpenBallance's table, which is exactly that (see platform.h). */
+static const struct { uint8_t key, dik; } DIK_OF[] = {
+    {GASM_KEY_ESCAPE, 0x01}, {GASM_KEY_DIGIT1, 0x02}, {GASM_KEY_DIGIT2, 0x03}, {GASM_KEY_DIGIT3, 0x04},
+    {GASM_KEY_DIGIT4, 0x05}, {GASM_KEY_DIGIT5, 0x06}, {GASM_KEY_DIGIT6, 0x07}, {GASM_KEY_DIGIT7, 0x08},
+    {GASM_KEY_DIGIT8, 0x09}, {GASM_KEY_DIGIT9, 0x0a}, {GASM_KEY_DIGIT0, 0x0b}, {GASM_KEY_MINUS, 0x0c},
+    {GASM_KEY_EQUAL, 0x0d}, {GASM_KEY_BACKSPACE, 0x0e}, {GASM_KEY_TAB, 0x0f}, {GASM_KEY_KEY_Q, 0x10},
+    {GASM_KEY_KEY_W, 0x11}, {GASM_KEY_KEY_E, 0x12}, {GASM_KEY_KEY_R, 0x13}, {GASM_KEY_KEY_T, 0x14},
+    {GASM_KEY_KEY_Y, 0x15}, {GASM_KEY_KEY_U, 0x16}, {GASM_KEY_KEY_I, 0x17}, {GASM_KEY_KEY_O, 0x18},
+    {GASM_KEY_KEY_P, 0x19}, {GASM_KEY_BRACKET_LEFT, 0x1a}, {GASM_KEY_BRACKET_RIGHT, 0x1b},
+    {GASM_KEY_ENTER, 0x1c}, {GASM_KEY_CONTROL_LEFT, 0x1d}, {GASM_KEY_KEY_A, 0x1e}, {GASM_KEY_KEY_S, 0x1f},
+    {GASM_KEY_KEY_D, 0x20}, {GASM_KEY_KEY_F, 0x21}, {GASM_KEY_KEY_G, 0x22}, {GASM_KEY_KEY_H, 0x23},
+    {GASM_KEY_KEY_J, 0x24}, {GASM_KEY_KEY_K, 0x25}, {GASM_KEY_KEY_L, 0x26}, {GASM_KEY_SEMICOLON, 0x27},
+    {GASM_KEY_QUOTE, 0x28}, {GASM_KEY_BACKQUOTE, 0x29}, {GASM_KEY_SHIFT_LEFT, 0x2a}, {GASM_KEY_BACKSLASH, 0x2b},
+    {GASM_KEY_KEY_Z, 0x2c}, {GASM_KEY_KEY_X, 0x2d}, {GASM_KEY_KEY_C, 0x2e}, {GASM_KEY_KEY_V, 0x2f},
+    {GASM_KEY_KEY_B, 0x30}, {GASM_KEY_KEY_N, 0x31}, {GASM_KEY_KEY_M, 0x32}, {GASM_KEY_COMMA, 0x33},
+    {GASM_KEY_PERIOD, 0x34}, {GASM_KEY_SLASH, 0x35}, {GASM_KEY_SHIFT_RIGHT, 0x36}, {GASM_KEY_NUMPAD_MULTIPLY, 0x37},
+    {GASM_KEY_ALT_LEFT, 0x38}, {GASM_KEY_SPACE, 0x39}, {GASM_KEY_CAPS_LOCK, 0x3a}, {GASM_KEY_F1, 0x3b},
+    {GASM_KEY_F2, 0x3c}, {GASM_KEY_F3, 0x3d}, {GASM_KEY_F4, 0x3e}, {GASM_KEY_F5, 0x3f}, {GASM_KEY_F6, 0x40},
+    {GASM_KEY_F7, 0x41}, {GASM_KEY_F8, 0x42}, {GASM_KEY_F9, 0x43}, {GASM_KEY_F10, 0x44}, {GASM_KEY_NUM_LOCK, 0x45},
+    {GASM_KEY_SCROLL_LOCK, 0x46}, {GASM_KEY_NUMPAD7, 0x47}, {GASM_KEY_NUMPAD8, 0x48}, {GASM_KEY_NUMPAD9, 0x49},
+    {GASM_KEY_NUMPAD_SUBTRACT, 0x4a}, {GASM_KEY_NUMPAD4, 0x4b}, {GASM_KEY_NUMPAD5, 0x4c}, {GASM_KEY_NUMPAD6, 0x4d},
+    {GASM_KEY_NUMPAD_ADD, 0x4e}, {GASM_KEY_NUMPAD1, 0x4f}, {GASM_KEY_NUMPAD2, 0x50}, {GASM_KEY_NUMPAD3, 0x51},
+    {GASM_KEY_NUMPAD0, 0x52}, {GASM_KEY_NUMPAD_DECIMAL, 0x53}, {GASM_KEY_INTL_BACKSLASH, 0x56}, {GASM_KEY_F11, 0x57},
+    {GASM_KEY_F12, 0x58}, {GASM_KEY_F13, 0x64}, {GASM_KEY_F14, 0x65}, {GASM_KEY_F15, 0x66}, {GASM_KEY_INTL_RO, 0x73},
+    {GASM_KEY_INTL_YEN, 0x7d}, {GASM_KEY_NUMPAD_EQUAL, 0x8d}, {GASM_KEY_NUMPAD_ENTER, 0x9c},
+    {GASM_KEY_CONTROL_RIGHT, 0x9d}, {GASM_KEY_NUMPAD_COMMA, 0xb3}, {GASM_KEY_NUMPAD_DIVIDE, 0xb5},
+    {GASM_KEY_PRINT_SCREEN, 0xb7}, {GASM_KEY_ALT_RIGHT, 0xb8}, {GASM_KEY_PAUSE, 0xc5}, {GASM_KEY_HOME, 0xc7},
+    {GASM_KEY_ARROW_UP, 0xc8}, {GASM_KEY_PAGE_UP, 0xc9}, {GASM_KEY_ARROW_LEFT, 0xcb}, {GASM_KEY_ARROW_RIGHT, 0xcd},
+    {GASM_KEY_END, 0xcf}, {GASM_KEY_ARROW_DOWN, 0xd0}, {GASM_KEY_PAGE_DOWN, 0xd1}, {GASM_KEY_INSERT, 0xd2},
+    {GASM_KEY_DELETE, 0xd3}, {GASM_KEY_META_LEFT, 0xdb}, {GASM_KEY_META_RIGHT, 0xdc}, {GASM_KEY_CONTEXT_MENU, 0xdd},
+};
+
+static uint8_t scan_of[256];   /* GASM_KEY_* -> scan code | 0x80 for extended, 0 = none */
+
+static void init_keys(void)
+{
+    for (size_t i = 0; i < sizeof DIK_OF / sizeof *DIK_OF; i++) scan_of[DIK_OF[i].key] = DIK_OF[i].dik;
+}
+
+static uint16_t events[128];
+static int nevents;
+
+static void poll_key_events(void)
+{
+    uint8_t ev[4 * 128];
+    nevents = 0;
+    int32_t n = gasm_key_events(ev, sizeof ev);
+    if (n < 0 || n > (int32_t)sizeof ev) return;   /* none, or more than a frame's worth: dropped */
+    for (int32_t i = 0; i + 4 <= n; i += 4) {
+        uint16_t key = (uint16_t)(ev[i] | ev[i + 1] << 8);
+        uint8_t dik = key < 256 ? scan_of[key] : 0;
+        if (!dik || nevents == 128) continue;            /* unmapped */
+        uint16_t c = dik & 0x7f;
+        if (dik & 0x80) c |= KEY_E0;
+        if (!ev[i + 2]) c |= KEY_RELEASE;
+        events[nevents++] = c;
+    }
+}
+
+int plat_key_events(uint16_t *codes, int cap)
+{
+    int n = nevents < cap ? nevents : cap;
+    memcpy(codes, events, (size_t)n * sizeof *codes);
+    return n;
+}
+
+/* ---- storage ---- */
+
+/* A file name as a storage key (1-128 of [A-Za-z0-9._-]): the separators '\\' and '/' become '_',
+   letters, digits and '.' stay, any other byte (so '-' and '_' too) becomes "-XX" in hex; reversible.
+   0 when too long. */
+static uint32_t storage_key(const char *name, char *key, size_t cap)
+{
+    static const char hex[] = "0123456789ABCDEF";
+    size_t n = 0;
+    for (const unsigned char *p = (const unsigned char *)name; *p; p++) {
+        unsigned char c = *p;
+        bool keep = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '.';
+        if (c == '\\' || c == '/') {
+            if (n + 1 > cap) return 0;
+            key[n++] = '_';
+        } else if (keep) {
+            if (n + 1 > cap) return 0;
+            key[n++] = (char)c;
+        } else {
+            if (n + 3 > cap) return 0;
+            key[n++] = '-', key[n++] = hex[c >> 4], key[n++] = hex[c & 15];
+        }
+    }
+    return n <= 128 ? (uint32_t)n : 0;
+}
+
+uint8_t *plat_load_user_file(const char *name, size_t *size)
+{
+    char key[128];
+    uint32_t k = storage_key(name, key, sizeof key);
+    if (!k) return NULL;
+    int32_t n = gasm_storage_get(key, k, NULL, 0);
+    if (n < 0) return NULL;
+    uint8_t *b = malloc(n ? (size_t)n : 1);
+    if (gasm_storage_get(key, k, b, (uint32_t)n) != n) { free(b); return NULL; }
+    *size = (size_t)n;
+    return b;
+}
+
+bool plat_save_user_file(const char *name, const void *data, size_t size)
+{
+    char key[128];
+    uint32_t k = storage_key(name, key, sizeof key);
+    return k && gasm_storage_set(key, k, data, (uint32_t)size) == 0;
+}
+
+/* ---- data: the game's files as assets ---- */
+
+typedef struct { int64_t size; char name[]; } FileAsset;
+
+/* Game path -> asset name: '\\' -> '/', "." and ".." resolved; leading ".." components are dropped. */
+static void norm_path(const char *rel, char *out, size_t cap)
+{
+    size_t n = 0;
+    while (*rel && n + 1 < cap) {
+        while (*rel == '/' || *rel == '\\') rel++;
+        const char *seg = rel;
+        while (*rel && *rel != '/' && *rel != '\\') rel++;
+        size_t len = (size_t)(rel - seg);
+        if (!len || (len == 1 && seg[0] == '.')) continue;
+        if (len == 2 && seg[0] == '.' && seg[1] == '.') {
+            while (n && out[n - 1] != '/') n--;
+            if (n) n--;
+            continue;
+        }
+        if (n && n + 1 < cap) out[n++] = '/';
+        for (size_t k = 0; k < len && n + 1 < cap; k++) out[n++] = seg[k];
+    }
+    out[n] = 0;
+}
+
+static void *files_open(void *ctx, const char *rel, uint64_t *size)
+{
+    char name[512];
+    norm_path(rel, name, sizeof name);
+    int64_t n = gasm_asset_size64(name, (uint32_t)strlen(name));
+    if (n < 0) return NULL;
+    size_t l = strlen(name);
+    FileAsset *f = malloc(sizeof *f + l + 1);
+    if (!f) return NULL;
+    f->size = n;
+    memcpy(f->name, name, l + 1);
+    *size = (uint64_t)n;
+    return f;
+}
+
+static int64_t files_read_at(void *ctx, void *file, uint64_t off, void *dst, size_t len)
+{
+    const FileAsset *f = file;
+    size_t done = 0;
+    while (done < len) {
+        uint32_t want = len - done > (1u << 30) ? 1u << 30 : (uint32_t)(len - done);
+        int32_t k = gasm_asset_read_at64(f->name, (uint32_t)strlen(f->name), off + done, (uint8_t *)dst + done, want);
+        if (k < 0) return done ? (int64_t)done : -1;
+        if (k == 0) break;
+        done += (size_t)k;
+    }
+    return (int64_t)done;
+}
+
+static void files_close(void *ctx, void *file) { free(file); }
+
+/* Entries directly under dir, from the asset names (folder entries are relative paths; the game lists
+   directories case-insensitively, e.g. its saved games and car folders). Directories are reported once
+   per name, at their first file. */
+static bool files_list(void *ctx, const char *dir, VfsListFn fn, void *user)
+{
+    char d[512], name[512], last[256] = "";
+    norm_path(dir, d, sizeof d);
+    size_t dl = strlen(d);
+    bool any = false;
+    for (uint32_t i = 0, n = gasm_asset_count(); i < n; i++) {
+        int32_t l = gasm_asset_name(i, name, sizeof name - 1);
+        if (l < 0 || l >= (int32_t)sizeof name - 1) continue;
+        name[l] = 0;
+        const char *rest = name;
+        if (dl) {
+            if ((size_t)l <= dl || strncasecmp(name, d, dl) != 0 || name[dl] != '/') continue;
+            rest = name + dl + 1;
+        }
+        const char *slash = strchr(rest, '/');
+        size_t el = slash ? (size_t)(slash - rest) : strlen(rest);
+        if (!el || el >= sizeof last) continue;
+        any = true;
+        if (slash) {
+            if (strlen(last) == el && !strncasecmp(last, rest, el)) continue;
+            memcpy(last, rest, el);
+            last[el] = 0;
+            fn(last, true, user);
+        } else {
+            char e[256];
+            memcpy(e, rest, el);
+            e[el] = 0;
+            fn(e, false, user);
+        }
+    }
+    return any;
+}
+
+static bool has_game(void) { return vfs_exists("MICRO.EXE"); }
+
+/* A disk image given as a named asset: FAT over asset_read_at. */
+typedef struct { char name[8]; } ImageAsset;
+
+static int64_t image_read_at(void *ctx, uint64_t off, void *dst, size_t len)
+{
+    const ImageAsset *a = ctx;
+    size_t done = 0;
+    while (done < len) {
+        uint32_t want = len - done > (1u << 30) ? 1u << 30 : (uint32_t)(len - done);
+        int32_t k = gasm_asset_read_at64(a->name, (uint32_t)strlen(a->name), off + done, (uint8_t *)dst + done, want);
+        if (k < 0) return done ? (int64_t)done : -1;
+        if (k == 0) break;
+        done += (size_t)k;
+    }
+    return (int64_t)done;
+}
+
+static void image_close(void *ctx) { free(ctx); }
+
+static bool mount_game(void)
+{
+    static const char *const images[] = {"disk", "floppy", "img"};
+    for (size_t i = 0; i < sizeof images / sizeof *images; i++) {
+        int64_t size = gasm_asset_size64(images[i], (uint32_t)strlen(images[i]));
+        if (size < 0) continue;
+        ImageAsset *a = calloc(1, sizeof *a);
+        if (!a) return false;
+        snprintf(a->name, sizeof a->name, "%s", images[i]);
+        VfsSource src = {a, (uint64_t)size, image_read_at, image_close};
+        char d[32];
+        snprintf(d, sizeof d, "asset %s", images[i]);
+        if (vfs_mount_image(&src, d) && has_game()) return true;
+        vfs_unmount();
+    }
+    VfsBackend b = {NULL, files_open, files_read_at, files_close, files_list, NULL};
+    vfs_mount(&b, "gasm assets");
+    if (has_game()) return true;
+    vfs_unmount();
+    return false;
+}
+
+/* ---- exports ---- */
+
+static bool running;
+static double audio_acc;   /* fractional audio frames carried between frames */
+
+double plat_ms(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000.0 + ts.tv_nsec / 1e6;
+}
+
+GASM_EXPORT("gasm_abi_version") int32_t mm_gasm_abi_version(void) { return GASM_ABI_VERSION; }
+
+GASM_EXPORT("gasm_init") int32_t mm_gasm_init(void)
+{
+    gasm_set_frame_rate(APP_FRAME_HZ);
+    gasm_audio_config(APP_AUDIO_RATE, 2);
+    gasm_input_mode(GASM_INPUT_KEYS_RAW);
+    static const char aspect[] = "gasm.video_set_aspect";
+    if (gasm_has(aspect, sizeof aspect - 1)) gasm_video_set_aspect(4, 3);   /* 320 x 200 on a 4:3 screen */
+    init_keys();
+    if (!mount_game()) {
+        plat_log("OpenMM: game data not found. Pass the floppy image (gasm-run openmm.wasm --asset disk=disk1.img) "
+                 "or its files (--asset-dir <folder with MICRO.EXE and GAME1>)");
+        return 1;
+    }
+    char m[640];
+    snprintf(m, sizeof m, "OpenMM: game data from %s", vfs_describe());
+    plat_log(m);
+    if (!app_init()) return 1;
+    running = true;
+    return 0;
+}
+
+GASM_EXPORT("gasm_frame") void mm_gasm_frame(void)
+{
+    static float audio_buf[2048 * 2];
+    if (!running) return;
+    for (uint32_t p = 0; p < 4; p++) pads[p] = gasm_input_pad(p);
+    poll_key_events();
+    if (!app_frame()) {
+        running = false;
+        app_exit();
+        __wasi_proc_exit(0);
+    }
+    /* The sound for the time since the previous frame (the runner's clock), as OpenCMR2's: a frame rate
+       that drifts from the one asked for keeps the queue at its level; headless the clock is the frames'
+       own. At most the buffer: a longer gap is lost. */
+    double now = gasm_time_ms();
+    static double last_ms = -1;
+    audio_acc += 0 <= last_ms ? (now - last_ms) * APP_AUDIO_RATE / 1000.0 : APP_AUDIO_RATE / frame_hz;
+    last_ms = now;
+    if (audio_acc > 2048) audio_acc = 2048;
+    unsigned n = (unsigned)audio_acc;
+    audio_acc -= n;
+    app_audio(audio_buf, n);
+    gasm_audio_push(audio_buf, n);
+}
+
+GASM_EXPORT("gasm_exit") void mm_gasm_exit(void)
+{
+    if (!running) return;
+    running = false;
+    app_exit();
+}
