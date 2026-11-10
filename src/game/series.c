@@ -1038,7 +1038,8 @@ void Race_BonusRace(void)
    -0b0h two pixels a turn to 28h; the cup (frames 1..8, 8 pixels apart from row 62h); the winner's name
    on row a4h at [03ac], from 100h two pixels a turn to 68h; faded in, presented, the winner erased.
    Once both texts are in, a tick and the input read each turn ([1080] = 0) until any input bit
-   ([108b]). The object's frame word restored. */
+   ([108b]). The object's frame word restored. Until then nothing waits: the slide runs at the machine's
+   speed, about three turns a frame on the reference (the port's mach_busy). */
 void Menu_ChampionScreen(void)
 {
     d16w(0x0348, R.bx);
@@ -1126,6 +1127,9 @@ void Menu_ChampionScreen(void)
         R.bx = l_bx;
         R.ax = l_ax;
         if (d16(0x03aa) != 0x28 || d16(0x03ac) != 0x68) {
+            /* no wait while the texts slide in: a turn's drawing is the time; on the reference machine
+               (the harness's) the 108 turns take about 34 frames */
+            mach_busy(MACH_FRAME_COUNTS / 3);
             if ((int16_t)R.ax >= 0x36) R.ax--;
             uint16_t ax = R.ax;
             Gfx_RestoreUnder();

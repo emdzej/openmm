@@ -45,8 +45,11 @@ into one- and two-player races headless (`build/mm_run`). Checked against the or
 `build/mm_fncheck out/fn/*/`; `out/race_keys.txt` reaches the Powerboats qualifier, `out/h2h_keys.txt`
 a two-player Formula One race: player two selects with G, keys 2; `--poke 193c:28bf=0N,193c:28c0=0M`
 puts the race on theme N, track M). The harness's menus run slower than
-the port's, so its key scripts have their own timings. Next: wider checks (championship, every theme,
-longer races) and whole-run comparisons for the routines that wait on the timer. Machine model:
+the port's, so its key scripts have their own timings. Whole runs compared with the original
+(docs/re/porting.md, "Checking whole runs"): the two-player race and tournament, the qualifier, a failed
+qualifier, the championship to its end. Time: the CPU is instant except for fades and the champion's
+screen (`mach_busy`, architecture.md). Next: the dead routines (optional), the AdLib model against a
+real chip. Machine model:
 docs/re/architecture.md; method: docs/re/porting.md; map: docs/re/functions.md. The browser player
 (`docs/public/play/`, from openi76's) passes `tools/web-play-test.mjs <image>`. The game port (201h) models
 gamepads as joysticks A and B (`build/mm_run --gamepad f:x,y,buttons;...`).

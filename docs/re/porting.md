@@ -156,6 +156,17 @@ the original waits for the next Enter and runs 200 frames behind from there. Aft
 character picker's WHO DO YOU WANT TO BE ? is left drawn in the original and cleared in the port: the
 blink flag's phase again (checked with `--shot-at`).
 
+The championship to its end (`out/full_keys.txt` with the same three pokes, 40,000 frames: 25 races,
+the bonus races, WIN THIS RACE TO BE CHAMPION, CHAMPIONSHIP WINNER!!, SELECT GAME): 7317 of the
+original's 8239 pictures appear in the port's sequence in order. This run found the port's one
+difference of its own: with the CPU instant, the champion's screen (1000:1aad, which draws its 108
+turns of the slide with no wait) and every fade passed within a frame, so the screen was seen only
+with its texts in place (and not at all with a key held), and no fade was seen. Both now take the
+machine's time (architecture.md, `mach_busy`). What is left: the start lights and the champion's face
+in the blink flag's other phase, the beat, an Enter lost in the original's redraw (it reaches the
+champion's screen 200 frames later) and, at the start of the helicopters' race, the race's first step
+count against the fade's length (within a frame of the harness's).
+
 The port alone plays the whole championship this way (`out/full_keys.txt`, 60,000 frames): the races to
 the last, "WIN THIS RACE TO BE CHAMPION", CHAMPIONSHIP WINNER!! and back to SELECT GAME, with no
 PENDING_NOTE.

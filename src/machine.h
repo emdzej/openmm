@@ -36,6 +36,12 @@ void mach_set_program(const struct FnEntry_ *tab, int n);
 /* ---- time ---- */
 void mach_frame(void);
 uint32_t mach_frames(void);
+/* Work the original does without waiting, in PIT counts of a reference machine: when a frame's worth has
+   been spent since the last boundary, the next boundary passes there (mach_frame), as the retrace would
+   on the real machine. The few costs modelled are those the game's look depends on (machine.c); none
+   under the replay. */
+void mach_busy(double counts);
+#define MACH_FRAME_COUNTS (1193182.0 / 70.086)
 
 /* ---- the screen ---- */
 uint8_t mach_video_mode(void);

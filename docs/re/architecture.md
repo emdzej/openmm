@@ -85,3 +85,10 @@ runner): the frame boundary is the retrace's start, 70.086 times a second, where
 the program's IRQ 0 handler runs, then its IRQ 1 handler once per key event (`src/machine.c`). Each wait
 of the original is a `mach_frame()` or one of the retrace waits of `src/vga.h`. The CPU is instant: time
 passes only at the boundaries, so the PIT counts the game measures are whole frames.
+Two stretches of work the original does without any wait are what the player sees, so they take time
+(`mach_busy`, in PIT counts of the reference machine, the harness's): a fade (126 or 128 full palettes
+to the DAC, 0.6 counts a write: 3 to 4 frames, as in the harness) and the slide of the champion's
+screen (`Menu_ChampionScreen` 1000:1aad, a third of a frame a turn: 108 turns in 36 frames, the harness
+34). When the work adds up to a frame, the boundary passes inside it, as the retrace would. Nothing else
+is costed: the draws and presents between waits stay instant (in the harness a present is a tenth of a
+frame), so the number of presents per wait is the original's.

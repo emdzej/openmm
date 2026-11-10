@@ -21,8 +21,9 @@ OpenMM **runs the game's menus and races, with sound**. As of 10 November 2026:
   memory, registers, port accesses and DOS calls. 151 routines pass so far; the others are not yet
   reached by the recorded runs, or wait for the timer. Those are checked by comparing whole runs picture
   by picture: a two-player race, a two-player tournament, a qualifying race, a failed qualifier and
-  16,000 frames of a championship give the original's pictures in the original's order, apart from differences traced to the reference
-  emulator's timing.
+  a whole championship give the original's pictures in the original's order, apart from differences
+  traced to the reference emulator's timing. That check found fades and the champion's screen running
+  in no time; they now take the time a PC of the day needs.
 
 ## In the browser
 
@@ -38,8 +39,6 @@ the game finds it, calibrates it with F7 on GAME OPTIONS and plays with it as JO
 
 ## Not yet
 
-- The championship's last races still need comparing with the original whole; their routines are
-  checked one by one.
 - The AdLib model is the port's own; it has not yet been compared with a real chip's recordings.
 - There are no releases yet.
 

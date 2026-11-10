@@ -2,7 +2,9 @@
    (tools/emu/dos.py), which serves the same ports to the original; where the two differ, the port is
    wrong. Time: the CPU is instant, so all time passes at mach_frame(), one frame of the VGA's 70.086 Hz
    at a time; the PIT's counts read between two boundaries are those of the boundary (the retrace's
-   start). */
+   start). The exceptions are the stretches of work the original does without any wait, where the time
+   a real machine needs is what the player sees (a fade, the champion's screen): mach_busy() spends it,
+   and a boundary passes inside the work when it adds up to a frame. */
 #include "machine.h"
 #include "cpu.h"
 #include "fntab.h"
@@ -111,6 +113,11 @@ static uint8_t joy_read(void)
 
 static double now;           /* virtual time in PIT counts */
 static uint32_t frames;
+static double busy;          /* PIT counts of work spent since the last boundary (mach_busy) */
+
+/* A write to the DAC's data port with its share of the loop around it, at the pace of the reference
+   (the harness, about 0.5 microseconds): a fade's 126 or 128 full palettes take 3 to 4 frames, as there. */
+#define DAC_OUT_COUNTS 0.6
 
 uint32_t mach_frames(void) { return frames; }
 double mach_time(void) { return now; }
@@ -128,7 +135,7 @@ void mach_reset(void)
     pit.lo = pit.latch = -1;
     pic.mask = 0xb8, pic.in_service = false;
     kbd.port60 = 0;
-    now = 0, frames = 0;
+    now = 0, frames = 0, busy = 0;
     for (int n = 0; n < 256; n++) mww(0, (uint16_t)(n * 4), (uint16_t)n), mww(0, (uint16_t)(n * 4 + 2), BIOS_SEG);
     for (int n = 0; n < 256; n++) mbw(BIOS_SEG, (uint16_t)n, 0xcf);   /* iret */
     dos_reset();
@@ -186,7 +193,10 @@ void io_out8(uint16_t port, uint8_t v)
     case 0x201: joy.polls = 0; break;   /* the one-shots start */
     case 0x3c8: vga.dac_w = v * 3; break;
     case 0x3c7: vga.dac_r = v * 3; break;
-    case 0x3c9: vga.dac[vga.dac_w] = v & 0x3f, vga.dac_w = (vga.dac_w + 1) % 768; break;
+    case 0x3c9:
+        vga.dac[vga.dac_w] = v & 0x3f, vga.dac_w = (vga.dac_w + 1) % 768;
+        mach_busy(DAC_OUT_COUNTS);
+        break;
     case 0x3c4: case 0x3c5: case 0x3ce: case 0x3cf: vga_planar_out(port, v); break;
     case 0x3d4: vga.crtc_idx = v; break;
     case 0x3d5: vga.crtc[vga.crtc_idx] = v; break;
@@ -316,8 +326,20 @@ static void present(void)
     plat_present(screen, w, h, w, pal8);
 }
 
+void mach_busy(double counts)
+{
+    if (hooks || pic.in_service) return;
+    busy += counts;
+    while (busy >= MACH_FRAME_COUNTS) {
+        double left = busy - MACH_FRAME_COUNTS;
+        mach_frame();
+        busy = left;
+    }
+}
+
 void mach_frame(void)
 {
+    busy = 0;
     present();
     plat_wait_frame();
     joy_sample();

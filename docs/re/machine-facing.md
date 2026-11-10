@@ -78,7 +78,8 @@ and every step writes all 256 colours to the DAC (3C8h/3C9h). 63 drops: everythi
 (3303): on even steps each working value that differs from its target at `0000` goes up by one (a
 "differs", so a value above its target would wrap round; from black it does not occur), and every step
 writes the working copy. 64 raises. There is no retrace wait anywhere: a fade takes as long as the CPU
-needs for 126 or 128 full DAC writes (the port's CPU is instant: a fade is not seen). The flag
+needs for 126 or 128 full DAC writes (the port gives each write to 3C9h 0.6 PIT counts, the
+harness's pace: a fade takes 3 to 4 frames; architecture.md). The flag
 `26ce` pairs them: a fade out only when faded in, a fade in only after a fade out.
 
 ## Sound driver loading (confirmed)
