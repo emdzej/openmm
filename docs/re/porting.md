@@ -94,3 +94,12 @@ difference seen comes from the harness's timing, none from the port:
 - the blink flag, which the timer toggles every 32 ticks, drifts a few frames against the port's by
   the same beat: a key that lands at a flip (the carousel's prompt left drawn or not after a pick, the
   start's blinking cars) gives a picture of the other phase.
+
+The one-player route with accelerate held from before the start and no steering
+(`out/race_hold_keys.txt`, 3,000 frames: the menus and the Powerboats qualifier, the computer drivers
+racing): 829 of the port's 833 pictures appear in the original's sequence in order; the original's
+extras are the beat's half-copied pictures every 169 frames and the start's blink in the other phase.
+A key script that steers does not compare this way: its taps are tied to frames, and the race runs 13
+frames later in the harness and gains a present on each beat, so the same tap meets another moment of
+the race. Each present follows a fixed number of game steps, so a constant input gives the same
+pictures whatever the timing.

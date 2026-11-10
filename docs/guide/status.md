@@ -19,7 +19,9 @@ OpenMM **runs the game's menus and races, with sound**. As of 10 November 2026:
   the speaker. The music and effects the drivers send to the chip match the original's, write for write.
 - **How it is checked.** Each routine is run against recordings of the original program: the same
   memory, registers, port accesses and DOS calls. 151 routines pass so far; the others are not yet
-  reached by the recorded runs, or wait for the timer and are checked through whole runs.
+  reached by the recorded runs, or wait for the timer. Those are checked by comparing whole runs picture
+  by picture: a two-player game and a one-player qualifying race give the original's pictures in the
+  original's order, apart from differences traced to the reference emulator's timing.
 
 ## Opt-in
 
