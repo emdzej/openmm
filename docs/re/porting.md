@@ -44,6 +44,10 @@ moved past a table). The port keeps those hand-overs exactly:
   (`jl`, `jg`) on `int16_t`/`int8_t`; `idiv`/`div` truncate, and a divide overflow is the original's crash
   (guard it with a comment saying what happens).
 - Quirks and bugs are kept and commented "as the original".
+- `Main_Restart` (1000:00cc) reloads SS:SP saved by Start and jumps back into Start's loop (a longjmp;
+  wasm has none). The port sets `g_restart` (`src/game/game.h`) and returns; every routine between
+  Start's loop and a jump to 00cc returns at once after a call when `g_restart` is set
+  (`CALL_R(X)`), and Start clears it where the original lands (1000:0054).
 
 No decompiler text in the source: write the routine from the disassembly in your own words, one
 statement per step of the original where it matters, comments for what each step means. `tools/dis16.py`
@@ -55,6 +59,10 @@ disassembles (`.deps/emu-venv/bin/python tools/dis16.py re/micro.exe 1000:xxxx 6
    --skip-card [--keys ...]` writes `out/fn/1000_xxxx_N/` (memory before and after, the registers, the
    ports, ints and driver calls in order). Interrupts are held while the routine runs; a routine that
    waits for the timer cannot be recorded alone (check it through its callers or whole runs).
+   Calls the routine makes to routines **not ported yet** (`build/gen/unported.txt`, read by default)
+   are recorded whole, like the driver's: the generated stand-in replays them. So any routine can be
+   checked before its callees are ported. Record again after porting a callee (the recording then has
+   the callee's own steps, which the port now runs).
 2. `build/mm_fncheck out/fn/1000_xxxx_N ...` runs the port from the same state with the recording
    serving its ports and calls, and compares: each port access and its value, each int's registers, the
    registers at return, all memory except the stack below the entry SP. `ok` or the first differences.

@@ -49,5 +49,8 @@ typedef struct {
     void (*out8)(uint16_t port, uint8_t v);
     void (*intr)(uint8_t n);
     void (*drv)(void);
+    bool (*call)(uint32_t addr);   /* a routine not ported yet, recorded whole: true if served */
 } MachHooks;
+/* For the generated stand-ins (routines.c): replays a call to an unported routine when checking. */
+bool mach_replay_call(uint32_t addr);
 void mach_set_hooks(const MachHooks *h);   /* NULL: the models */

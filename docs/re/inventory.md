@@ -47,7 +47,7 @@ Lake City and Foamy Fjords; Sahara Sandpit; The Breakfast Bends), the modes (one
 qualifying, the championship, a bonus race, beat the clock, time trials) and handicap prompts
 naming Walter, Mike and Anne. The port reads them from the program at run time.
 
-`GAME1` and the program's string "THE ORIGINAL MICROMACHINES GAME1" suggest the program was written for
+`GAME1` and the program's own description of its data set suggest the program was written for
 more than one data set; only GAME1 is on this disk.
 
 ## The program
@@ -57,11 +57,12 @@ more than one data set; only GAME1 is on this disk.
 image at segment 1000h, as in Ghidra and `tools/emu` (src/exe.h).
 
 Hand-written assembly: no compiler's prologues or runtime library, near calls within one code segment,
-registers rather than a stack frame for arguments. Whether it needs a 386 is to be read.
+registers rather than a stack frame for arguments. It needs a 386 (32-bit registers and `movsd`/`stosd`,
+some patched in at start-up: docs/re/functions.md).
 
 | Segment | Size | What |
 |---|---|---|
-| `1000` | 37,824 (`1000:0000`-`93bf`) | the code: 168 functions found by Ghidra's analysis, 26 KB of them (the rest: code reached only through tables, and data, to be mapped) |
+| `1000` | 37,824 (`1000:0000`-`93bf`) | the code: 243 routines, 37,616 bytes of code and 208 of padding and cs: variables (docs/re/functions.md) |
 | `193c` | 44,669 | the data segment (DS from the first instructions): strings, tables, the game's state |
 | `2424` | 30,016, not in the file | the sound driver: `DRIVERn.BIN` is loaded here and called far at `2424:0000` with the function in AH (109 calls) |
 | `2b78`-`7cdb` | about 330 KB, not in the file | 27 far buffers at fixed segments (graphics, maps, decompression, inferred); each named once its users are read |

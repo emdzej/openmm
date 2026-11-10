@@ -5,6 +5,7 @@
 
 uint8_t g_mem[MEM_SIZE] __attribute__((aligned(16)));
 Cpu R;
+bool g_restart;   /* src/game/game.h */
 
 void mem_write(uint16_t seg, uint16_t off, const void *src, size_t len)
 {

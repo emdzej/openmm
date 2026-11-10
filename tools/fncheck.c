@@ -21,7 +21,8 @@ typedef struct { uint16_t v[NREG]; } RegLine;   /* ax bx cx dx si di bp sp ds es
 enum { AX_, BX_, CX_, DX_, SI_, DI_, BP_, SP_, DS_, ES_, SS_, FL_, CS_, IP_ };
 
 typedef struct {
-    char kind;        /* I O N D */
+    char kind;        /* I O N D C */
+    uint32_t addr;    /* C: the routine */
     uint16_t port, val;
     uint8_t intno;
     RegLine pre, post;
@@ -156,7 +157,18 @@ static void r_drv(void)
     if (e) apply(e, "driver call", false);
 }
 
-static const MachHooks replay = {r_in8, r_out8, r_int, r_drv};
+static bool r_call(uint32_t addr)
+{
+    Event *e = next('C', "call of an unported routine");
+    if (!e) return true;
+    if (e->addr != addr) err("%s: port calls %x, original %x", "call", addr, e->addr);
+    char m[48];
+    snprintf(m, sizeof m, "call %04x:%04x", (unsigned)(addr >> 16), (unsigned)(addr & 0xffff));
+    apply(e, m, true);
+    return true;
+}
+
+static const MachHooks replay = {r_in8, r_out8, r_int, r_drv, r_call};
 
 static uint8_t *load(const char *dir, const char *name)
 {
@@ -208,7 +220,7 @@ static int check(const char *dir_arg)
         const char *rest = line + 2;
         if (k == 'B') parse_regs(rest, &b);
         else if (k == 'F') parse_regs(rest, &fin);
-        else if (k == 'I' || k == 'O' || k == 'N' || k == 'D') {
+        else if (k == 'I' || k == 'O' || k == 'N' || k == 'D' || k == 'C') {
             if (nev == cap) ev = realloc(ev, (size_t)(cap = cap ? cap * 2 : 256) * sizeof *ev);
             Event *e = &ev[nev++];
             memset(e, 0, sizeof *e);
@@ -221,6 +233,10 @@ static int check(const char *dir_arg)
                 if (k == 'N') {
                     sscanf(rest, "%x", &a1);
                     e->intno = (uint8_t)a1;
+                    rest = strchr(rest, ' ') + 1;
+                } else if (k == 'C') {
+                    sscanf(rest, "%x:%x", &a1, &a2);
+                    e->addr = a1 << 16 | a2;
                     rest = strchr(rest, ' ') + 1;
                 }
                 parse_regs(rest, &e->pre);

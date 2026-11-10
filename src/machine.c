@@ -64,6 +64,7 @@ double mach_time(void) { return now; }
 uint8_t mach_video_mode(void) { return vga.mode; }
 const uint8_t *mach_dac(void) { return vga.dac; }
 void mach_set_hooks(const MachHooks *h) { hooks = h; }
+bool mach_replay_call(uint32_t addr) { return hooks && hooks->call && hooks->call(addr); }
 
 void mach_reset(void)
 {

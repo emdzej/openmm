@@ -8,19 +8,43 @@ read. Addresses: seg:off with the image at 1000h (src/exe.h).
 A real-mode DOS program in hand-written assembly. `MICRO.COM` runs `SM.EXE`, then `MICRO.EXE`. Its PKLITE
 stub unpacks it (docs/formats/pklite.md) and enters `Start` (`1000:0006`):
 
-1. A start-up check (`1000:31f0`); if it fails, straight to the exit.
+1. The code-card check (`Sys_CodeCardCheck`, `1000:31f0`): `FONT.BIN` is code, read into `2424:0000` and
+   called far with AX = 0; AX = 0 back is a pass, anything else goes straight to int 21h 4C00h.
 2. `DS` = `193c` (the data segment), `SS:SP` = `7d78:03e8` relative to the load (8d78 in the port's
-   numbering), `1000:7a75`, the video mode saved (int 10h 0Fh) and mode 13h set.
-3. Set-up calls (`1000:26c0`, `1000:498a`), the sound driver (AH = 7), loading (`1000:2770`; carry = fail),
-   flags cleared, more set-up (`1000:2be8`, `1000:321c`), the stack saved in the data segment.
-4. The loop: `1000:0100` and `1000:0220` alternate (carry from each decides; a front end and a race,
-   inferred), with the driver called between (AH = 9, 4).
-5. The exit: the video mode back, the driver stopped (AH = 7, 8, 6), `1000:00e2`, `1000:49af`, the
-   keyboard's typematic rate restored (int 16h 0305h), int 21h 4C00h.
+   numbering), `Copy_Patch32` (`1000:7a75`: patches two copy loops to `movsd`, unconditionally; with other
+   32-bit instructions used directly, the game needs a 386), the video mode saved (int 10h 0Fh), mode 13h.
+3. `Menu_LoadFrontEnd` (`1000:26c0`: the `COMPRESS.PI*` pictures, the driver, the palette), `Irq_Install`
+   (`1000:498a`: timer, retrace, keyboard), the driver AH = 7, the game options screen (`Menu_GameOptions`,
+   `1000:2770`, which reads `SETTINGS.DAT` once; carry = Esc: the exit), flags cleared, the data-set
+   chooser (`Setup_ChooseGame`, `1000:2be8`: `GAMEn.LVL`), the driver loaded (`1000:321c`), and SS:SP saved
+   in `193c:0004`/`0006`.
+4. The loop, with the driver's title tune asked for and played between (AH = 9 then 4): `Menu_Attract`
+   (`1000:0100`, the attract screens; carry = Esc: back to step 3's options screen) and `Menu_SelectPlayers`
+   (`1000:0220`, one or two players; carry = a timeout or Esc: back to the attract screens). Both are front
+   end: the races run from inside the menus (`Race_RunOne` `1000:115c` and `Race_RunTwoPlayer` `1000:216c`
+   call `Race_Main` `1000:3039`). A race quit with Esc ends in `Main_Restart` (`1000:00cc`), which reloads
+   SS:SP from `193c:0004`/`0006` and jumps back into Start's loop: a longjmp out of any depth.
+5. The exit: the video mode back, the driver stopped (AH = 7, 8, 6), `Snd_StopAll` (`1000:00e2`),
+   `Sys_RemoveIrqs` (`1000:49af`: the vectors back, and DOS's date and time set again from the real-time
+   clock, because the timer ran the BIOS clock fast), the keyboard's typematic rate (int 16h 0305h),
+   int 21h 4C00h.
+
+The timer (`Timer_Irq`, `1000:489c`) ticks once per frame, locked to the retrace: it busy-waits for the
+retrace inside the interrupt and reloads the PIT with the measured frame less 150 counts; it counts
+`cs:4ade` (the frame ticks the race waits on), `193c:0002`, `261f` and `28f7` (the front end's waits and
+timeouts), calls the driver (AH = 3) once it is loaded, and chains to DOS's int 08h every tick. An IRQ 2
+handler for the VGA's retrace interrupt is installed too and takes over the counting only if that
+interrupt really arrives (it does not on most cards; the harness takes the timer path).
+
+The race (`Race_Main`) runs SMOOTHNESS (`193c:263a`) game steps per presented frame, draws on the last one
+only, waits for `cs:4ade` to reach a per-setting count, presents and clears the count. The front end waits
+for single ticks of `193c:0002` inline, in more than a dozen places at different depths. The map of every
+routine is docs/re/functions.md.
 
 The sound driver is a separate binary (`DRIVERn.BIN`, n from the set-up) loaded at `2424:0000` and called
-far with a function number in AH. Everything else (VGA, the PIT, the keyboard, the joysticks) the program
-drives itself through its ports and interrupt handlers (docs/re/inventory.md).
+far with a function number in AH (0, 2-10, 0Eh, 10h are used). Everything else (VGA, the PIT, the
+keyboard, the joysticks) the program drives itself through its ports and interrupt handlers
+(docs/re/inventory.md).
 
 ## The port
 

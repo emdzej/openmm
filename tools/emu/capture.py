@@ -10,6 +10,10 @@ into out/fn/<seg>_<off>_<n>/ (git-ignored: it holds the program's memory):
                           before, A the registers after, M lin hexbytes for the memory it changed, E)
 Registers: ax bx cx dx si di bp sp ds es ss flags cs ip, hex.
   tools/emu/capture.py 1000:2efd [--hit 1] [--kind near|far|irq] [--keys ...] [--frames 3000] [--skip-card]
+                       [--opaque build/gen/unported.txt | 1000:1234,1000:5678]
+--opaque: near calls from the routine (at any depth) to these routines are recorded whole, like the
+driver's (C addr, the registers before, A after, M, E), so a routine is checked while its callees are
+not ported (their generated stand-ins replay them). Default: build/gen/unported.txt if it exists.
 Exits 1 if the routine is not reached, or does not return (it may wait for an interrupt)."""
 import argparse
 import os
@@ -82,6 +86,7 @@ def main():
     ap.add_argument('--code-card', action='store_true')
     ap.add_argument('--skip-card', action='store_true')
     ap.add_argument('--out', default='out/fn')
+    ap.add_argument('--opaque', default='build/gen/unported.txt')
     a = ap.parse_args()
     seg, off = (int(x, 16) for x in a.addr.split(':'))
     lin = seg * 16 + off
@@ -126,14 +131,21 @@ def main():
             return
         sp = m.r('SP')
         ip, cs = struct.unpack('<HH', m.rd(m.r('SS') * 16 + sp, 4))
-        st['nested'] = {'sp': (sp + 4) & 0xffff, 'mem': snapshot(m), 'regs': regs(m)}
-        mu.hook_add(unicorn.UC_HOOK_CODE, on_drv_ret, None, cs * 16 + ip, cs * 16 + ip)
+        st['nested'] = {'sp': (sp + 4) & 0xffff, 'mem': snapshot(m), 'regs': regs(m), 'tag': 'D'}
+        ret_hook(cs * 16 + ip)
+
+    hooked = set()
+
+    def ret_hook(lin_ret):
+        if lin_ret not in hooked:
+            hooked.add(lin_ret)
+            m.mu.hook_add(unicorn.UC_HOOK_CODE, on_drv_ret, None, lin_ret, lin_ret)
 
     def on_drv_ret(mu, addr, size, _):
         n = st['nested']
         if not n or m.r('SP') != n['sp']:
             return
-        events.append('D %s' % n['regs'])
+        events.append('%s %s' % (n['tag'], n['regs']))
         events.append('A %s' % regs(m))
         for s0, b in diff(n['mem'], snapshot(m)):
             events.append('M %x %s' % (s0, b.hex()))
@@ -159,6 +171,24 @@ def main():
             events.append('M %x %s' % (s0, b.hex()))
         events.append('E')
 
+    opaque = set()
+    if a.opaque and os.path.exists(a.opaque):
+        opaque = {l.strip() for l in open(a.opaque) if l.strip()}
+    elif a.opaque and ':' in a.opaque:
+        opaque = set(a.opaque.split(','))
+    opaque.discard(a.addr.lower())
+    opaque_lin = {int(x.split(':')[0], 16) * 16 + int(x.split(':')[1], 16): x for x in opaque}
+
+    def on_opaque(mu, addr, size, _):
+        if st['rec'] is None or st['done'] or st['nested'] or addr not in opaque_lin:
+            return
+        sp = m.r('SP')
+        ip = struct.unpack('<H', m.rd(m.r('SS') * 16 + sp, 2))[0]
+        st['nested'] = {'sp': (sp + 2) & 0xffff, 'mem': snapshot(m), 'regs': regs(m), 'tag': 'C ' + opaque_lin[addr]}
+        ret_hook(m.r('CS') * 16 + ip)
+
+    for x in opaque_lin:
+        m.mu.hook_add(unicorn.UC_HOOK_CODE, on_opaque, None, x, x)
     m.mu.hook_add(unicorn.UC_HOOK_CODE, on_entry, None, lin, lin)
     m.mu.hook_add(unicorn.UC_HOOK_CODE, on_drv, None, 0x24240, 0x24240)
     m.on_io, m.on_int = on_io, on_int
