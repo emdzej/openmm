@@ -71,3 +71,26 @@ disassembles (`.deps/emu-venv/bin/python tools/dis16.py re/micro.exe 1000:xxxx 6
 
 Whole runs: `build/mm_run --frames N --keys ... --hashes --dump F` runs the port headless; the harness's
 `tools/emu/run.py` the original. Their memory at a frame boundary compares the same way.
+
+## Checking whole runs
+
+The routines that wait on the timer cannot be recorded alone; they are checked by running the original
+(`tools/emu/run.py --skip-card --hashes`) and the port (`build/mm_run --param splash=0 --hashes`) on the
+same key script and comparing the pictures (`tools/emu/seqcmp.py`: the sequence of distinct pictures,
+frame numbers alongside). `run.py --shot-at` and `mm_run --shot` take the same frame numbers, for a
+pixel comparison of any picture that differs.
+
+The two-player route (`out/h2h_keys.txt`, 4,200 frames: options, the menus, both pickers, CHOOSE GAME,
+SELECT VEHICLE, a Formula One race on the bath with scoring): 443 of the original's 503 pictures appear
+in the port in order, and the picture changes fall on the same frame or within a frame or two. Every
+difference seen comes from the harness's timing, none from the port:
+
+- loads take emulated time in the harness (the black screen before a race lasts 179 frames there, 172
+  in the port, which loads at once), so the race starts 7 frames later and runs 14 behind;
+- the harness's timer and its frames beat every 169 frames (the timer handler measures the frame by
+  polling the retrace, and the harness's clock moves with each port read): on the beat a second tick
+  falls within a frame, the race presents after one frame instead of two, and screens copied in bands
+  are caught half-copied;
+- the blink flag, which the timer toggles every 32 ticks, drifts a few frames against the port's by
+  the same beat: a key that lands at a flip (the carousel's prompt left drawn or not after a pick, the
+  start's blinking cars) gives a picture of the other phase.

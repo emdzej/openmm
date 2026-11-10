@@ -4,7 +4,7 @@
 of the original are the game's pictures.
   tools/emu/run.py [--exe MICRO.EXE] [--data game] [--frames 300] [--keys 120:1c,124:9c]
                    [--shots 50] [--coverage] [--log]
---keys: frame:scancode pairs in hex (0x80 set = release); --shots N: a PNG every N frames;
+--keys: frame:scancode pairs in hex (0x80 set = release); --shots N: a PNG every N frames (named frame + 1); --shot-at f,...: PNGs of those frames;
 --coverage: the executed blocks of segment 1000 into out/emu/coverage.txt (seg:off start, size)."""
 import argparse
 import os
@@ -39,6 +39,7 @@ def main():
     ap.add_argument('--frames', type=int, default=300)
     ap.add_argument('--keys', default='')
     ap.add_argument('--shots', type=int, default=0)
+    ap.add_argument('--shot-at', default='', help='frames (as --hashes numbers them, and mm_run --shot): a PNG of each')
     ap.add_argument('--coverage', action='store_true')
     ap.add_argument('--log', action='store_true')
     ap.add_argument('--code-card', action='store_true', help="answer FONT.BIN's check (reference runs only)")
@@ -69,6 +70,7 @@ def main():
         m.mu.hook_add(unicorn.UC_HOOK_BLOCK, block)
     per_frame = int(dos.FRAME_TICKS / (dos.SLICE * dos.TICKS_PER_INSN))
     frame = 0
+    shot_at = {int(x) for x in a.shot_at.split(',') if x}
     try:
         for frame in range(a.frames):
             m.key_queue.extend(keys.get(frame, []))
@@ -77,6 +79,8 @@ def main():
                 print('%d %08x' % (frame, picture_hash(m)), flush=True)
             if a.shots and (frame + 1) % a.shots == 0 and m.video_mode in (0x0d, 0x10, 0x12, 0x13):
                 dos.write_png(os.path.join(a.out, 'f%05d.png' % (frame + 1)), *m.frame())
+            if frame in shot_at:
+                dos.write_png(os.path.join(a.out, 'at%05d.png' % frame), *m.frame())
     except dos.Exit as e:
         print('exit %d at frame %d' % (e.args[0], frame))
     except RuntimeError as e:
