@@ -22,4 +22,4 @@ the X11 misc-fixed 7x14 font (public domain, `tools/font8x14.py` makes `src/font
 ROM font. The frame is shown at 640 x 350.
 
 By default the port passes the check at once (as `--skip-card` does in the harness); the real check
-runs with `--param codecard=1`. Which should be the default is the user's decision, still open.
+runs with `--param codecard=1`. Off by default: the user's decision (AGENTS.md).

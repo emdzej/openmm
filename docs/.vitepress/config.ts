@@ -42,6 +42,7 @@ export default defineConfig({
           items: [
             { text: "Introduction", link: "/guide/" },
             { text: "Status", link: "/guide/status" },
+            { text: "Theory of operation", link: "/guide/theory" },
             { text: "Game data", link: "/guide/game-data" },
           ],
         },
