@@ -68,7 +68,11 @@ leaves the CPU's registers, so routines port and check one at a time (docs/re/po
 - The PIT and IRQ 0: the game's timer handler runs at the rate it programs; the frame rate of the port
   follows from it (to be read: the rate and what the handler counts).
 - The keyboard and IRQ 1: the handler gets set-1 scan codes in order (`plat_key_events`).
-- The game port at 201h: timed axes from a controller's sticks, the buttons.
+- The game port at 201h: gamepad slots 0 and 1 as joysticks A and B. The axes are timed in polls (a
+  write starts them; each axis bit reads high for 20 to 420 reads by the stick's position, the game
+  calibrates the range), the south and east buttons are the stick's two, and the BIOS's int 15h 84h
+  answers with the same counts. With no gamepad 201h reads FFh and int 15h has no services, as in the
+  harness.
 - DOS: the int 21h file calls the game makes, over `src/vfs.h` (and the user's storage for the files it
   writes: `SETTINGS.DAT`).
 - Sound: the driver's interface (AH functions) with the driver ported too, over a model of the AdLib's

@@ -4,7 +4,7 @@
      build/mm_run [--data game] [--frames 300] [--keys 120:1c,124:9c] [--hashes] [--dump 100,200]
                   [--shot 100] [--out out/run]
    --keys: frame:scancode in hex (80h set = release, 100h = the E0 prefix); --hashes: one line per frame,
-   "frame fnv32"; --param name=value as gasm's (splash=0: no SM.EXE, codecard=1); --dump: out/run/mem_<frame>.bin; --shot: a PPM of the port's frame; --wav: the sound; --poke-when seg:off=hex/seg:off=hex,...: once the first bytes match, the
+   "frame fnv32"; --gamepad f:x,y,hexbuttons;...: a controller in slot 0; --param name=value as gasm's (splash=0: no SM.EXE, codecard=1); --dump: out/run/mem_<frame>.bin; --shot: a PPM of the port's frame; --wav: the sound; --poke-when seg:off=hex/seg:off=hex,...: once the first bytes match, the
    others are written (at a frame's end, as tools/emu/run.py's),
    44.1 kHz 16-bit stereo. The game's settings (SETTINGS.DAT, as the user's storage) are read from
    <out>/writes/ first, so a run can choose the sound device. */
@@ -44,7 +44,22 @@ static uint32_t fnv(uint32_t h, const uint8_t *p, size_t n)
 void plat_log(const char *msg) { printf("%s\n", msg); }
 double plat_ms(void) { return frame * (1000.0 / APP_FRAME_HZ); }
 uint32_t plat_pad(int player) { return 0; }
-bool plat_gamepad(int slot, PlatGamepad *g) { memset(g, 0, sizeof *g); return false; }
+/* --gamepad frame:x,y,buttons;...: a controller in slot 0 (the game port's joystick A), connected for
+   the whole run; from each frame on, the stick at x, y (-1..1) and the buttons (hex, W3C order) given */
+static struct { int frame; float x, y; unsigned buttons; } pad[64];
+static int npad;
+bool plat_gamepad(int slot, PlatGamepad *g)
+{
+    memset(g, 0, sizeof *g);
+    if (slot != 0 || !npad) return false;
+    int k = 0;
+    for (int i = 0; i < npad; i++)
+        if (pad[i].frame <= frame) k = i;
+    g->standard = true, g->nbuttons = 16, g->naxes = 2;
+    g->axis[0] = pad[k].x, g->axis[1] = pad[k].y;
+    for (int i = 0; i < 16; i++) g->button[i] = pad[k].buttons >> i & 1 ? 1.0f : 0.0f;
+    return true;
+}
 static const char *params[16];
 static int nparams;
 bool plat_param(const char *name, char *dst, size_t cap)
@@ -205,6 +220,11 @@ int main(int argc, char **argv)
         else if (!strcmp(a, "--dump") && v) ndumps = list(v, dumps, 64), i++;
         else if (!strcmp(a, "--shot") && v) nshots = list(v, shots, 64), i++;
         else if (!strcmp(a, "--out") && v) out_dir = v, i++;
+        else if (!strcmp(a, "--gamepad") && v) {
+            for (const char *p = v; p && *p && npad < 64; p = strchr(p, ';'), p = p ? p + 1 : NULL)
+                if (sscanf(p, "%d:%f,%f,%x", &pad[npad].frame, &pad[npad].x, &pad[npad].y, &pad[npad].buttons) == 4) npad++;
+            i++;
+        }
         else if (!strcmp(a, "--poke-when") && v) {
             const char *p = lin_bytes(v, &when_cond.lin, when_cond.b, &when_cond.n);
             n_when_act = 0;

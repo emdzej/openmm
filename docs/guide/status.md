@@ -26,7 +26,8 @@ OpenMM **runs the game's menus and races, with sound**. As of 10 November 2026:
 ## In the browser
 
 The [play page](/play/) runs the same module in the browser, from your own floppy image or its files,
-with the options below as settings.
+with the options below as settings. A gamepad is the PC's joystick (joystick A, a second one B):
+the game finds it, calibrates it with F7 on GAME OPTIONS and plays with it as JOY 1 (F1).
 
 ## Opt-in
 
@@ -38,8 +39,6 @@ with the options below as settings.
 
 - Championships and every track theme still need checking against the original.
 - The AdLib model is the port's own; it has not yet been compared with a real chip's recordings.
-- **The joystick.** The PC game port is not modelled yet: the game finds no joystick, so only the
-  keyboard plays (a gamepad as the joystick is to come).
 - There are no releases yet.
 
 The [port plan](https://github.com/emdzej/openmm/blob/main/docs/re/port-plan.md) lists the steps and the

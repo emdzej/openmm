@@ -48,8 +48,8 @@ puts the race on theme N, track M). The harness's menus run slower than
 the port's, so its key scripts have their own timings. Next: wider checks (championship, every theme,
 longer races) and whole-run comparisons for the routines that wait on the timer. Machine model:
 docs/re/architecture.md; method: docs/re/porting.md; map: docs/re/functions.md. The browser player
-(`docs/public/play/`, from openi76's) passes `tools/web-play-test.mjs <image>`; the game port (201h) has
-no joystick model yet.
+(`docs/public/play/`, from openi76's) passes `tools/web-play-test.mjs <image>`. The game port (201h) models
+gamepads as joysticks A and B (`build/mm_run --gamepad f:x,y,buttons;...`).
 
 ## Hard rules
 

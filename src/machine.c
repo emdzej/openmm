@@ -56,6 +56,59 @@ static struct {
     uint8_t port60;
 } kbd;
 
+/* The game port (201h): joystick A is gamepad slot 0, B slot 1. A write starts the four one-shots; each
+   axis bit then reads high for a number of polls set by the stick (the port's CPU is instant, so time is
+   counted in reads, which is what the game's loops count too): JOY_POLLS_MIN at one end to
+   JOY_POLLS_MIN + 2 * JOY_POLLS_HALF at the other, the centre between, as a 386 timing a 100 kilohm
+   stick would see roughly; the game calibrates the range. The two buttons (bits 4, 5 for A, 6, 7 for
+   B) are the gamepad's south and east buttons, active low. With no gamepad the port reads FFh: no
+   joystick, the axes never drop. Sampled once a frame. */
+enum { JOY_POLLS_MIN = 20, JOY_POLLS_HALF = 200 };
+static struct {
+    bool on[2];
+    uint16_t polls_high[4];  /* per axis bit 0-3: reads that return it high after a start */
+    uint8_t buttons;         /* bits 4-7 as read, active low */
+    uint32_t polls;          /* reads since the last start */
+} joy = {.buttons = 0xf0};
+
+static uint16_t joy_axis(float v)
+{
+    if (v < -1) v = -1;
+    if (v > 1) v = 1;
+    return (uint16_t)(JOY_POLLS_MIN + (v + 1) * JOY_POLLS_HALF + 0.5f);
+}
+
+static void joy_sample(void)
+{
+    joy.buttons = 0xf0;
+    for (int s = 0; s < 2; s++) {
+        PlatGamepad g;
+        joy.on[s] = plat_gamepad(s, &g);
+        if (!joy.on[s]) continue;
+        float x = g.naxes > 0 ? g.axis[0] : 0, y = g.naxes > 1 ? g.axis[1] : 0;
+        if (g.standard) {   /* the d-pad as the stick's ends */
+            if (g.button[14] > 0.5f) x = -1;
+            if (g.button[15] > 0.5f) x = 1;
+            if (g.button[12] > 0.5f) y = -1;
+            if (g.button[13] > 0.5f) y = 1;
+        }
+        joy.polls_high[2 * s] = joy_axis(x);
+        joy.polls_high[2 * s + 1] = joy_axis(y);
+        if (g.button[0] > 0.5f) joy.buttons &= (uint8_t)~(0x10 << 2 * s);
+        if (g.button[1] > 0.5f) joy.buttons &= (uint8_t)~(0x20 << 2 * s);
+    }
+}
+
+static uint8_t joy_read(void)
+{
+    if (!joy.on[0] && !joy.on[1]) return 0xff;
+    joy.polls++;
+    uint8_t v = joy.buttons;
+    for (int i = 0; i < 4; i++)
+        if (!joy.on[i / 2] || joy.polls <= joy.polls_high[i]) v |= (uint8_t)(1 << i);
+    return v;
+}
+
 static double now;           /* virtual time in PIT counts */
 static uint32_t frames;
 
@@ -115,7 +168,7 @@ uint8_t io_in8(uint16_t port)
     case 0x60: return kbd.port60;
     case 0x61: return speaker_port61();   /* as last written (the speaker's gate and data, bits 0-1) */
     case 0x64: return 0x1c;    /* the input buffer empty, the system flag */
-    case 0x201: return 0xff;   /* no joystick: the buttons up, the axes timed out */
+    case 0x201: return joy_read();
     case 0x388: return opl2_read_status();
     default: return 0xff;
     }
@@ -130,6 +183,7 @@ void io_out8(uint16_t port, uint8_t v)
         return;
     }
     switch (port) {
+    case 0x201: joy.polls = 0; break;   /* the one-shots start */
     case 0x3c8: vga.dac_w = v * 3; break;
     case 0x3c7: vga.dac_r = v * 3; break;
     case 0x3c9: vga.dac[vga.dac_w] = v & 0x3f, vga.dac_w = (vga.dac_w + 1) % 768; break;
@@ -180,7 +234,20 @@ void mach_int(uint8_t n)
     case 0x1a: bios_int1a(); break;
     case 0x33: R.ax = 0; break;                       /* no mouse driver */
     case 0x03: break;   /* a breakpoint left in DRIVER1 (no free voice): DOS's handler only returns */
-    case 0x15: R.cf = true, SET_AH(0x86); break;      /* no BIOS extensions */
+    case 0x15:
+        /* the BIOS's joystick service (AH = 84h) when a joystick is there: DX = 0 the buttons in AL bits
+           4-7, DX = 1 the four axes in AX, BX, CX, DX (0 for a missing stick). Else, and for every other
+           service, none: CF set, AH = 86h, as the harness's machine. */
+        if (AH == 0x84 && (joy.on[0] || joy.on[1]) && R.dx <= 1) {
+            if (R.dx == 0) SET_AL(joy.buttons);
+            else {
+                uint16_t a[4];
+                for (int i = 0; i < 4; i++) a[i] = joy.on[i / 2] ? joy.polls_high[i] : 0;
+                R.ax = a[0], R.bx = a[1], R.cx = a[2], R.dx = a[3];
+            }
+            R.cf = false;
+        } else R.cf = true, SET_AH(0x86);
+        break;
     default: {
         char m[80];
         snprintf(m, sizeof m, "machine: int %02xh ah=%02x ignored", n, AH);
@@ -253,6 +320,7 @@ void mach_frame(void)
 {
     present();
     plat_wait_frame();
+    joy_sample();
     frames++;
     now = frames * (PIT_HZ / FRAME_HZ);
     vga.retrace = true;
