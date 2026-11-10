@@ -1,14 +1,21 @@
 name: Pages
 
 # Builds and deploys the VitePress site to GitHub Pages at https://openmm.emdzej.pl/ (the custom-domain
-# CNAME ships in docs/public/CNAME). There is no browser player yet (docs/re/port-plan.md); when there
-# is, the module is built here and copied in, as in the sibling projects.
+# CNAME ships in docs/public/CNAME).
+#
+# The browser player (docs/public/play/) needs openmm.wasm, so the module is built first and copied in by
+# docs/scripts/copy-wasm.sh; the player's gasm and csfs runtime is vendored from the npm packages pinned in
+# docs/package.json (docs/scripts/vendor-web.sh). Only the engine goes into the site: the game data always
+# comes from the player's own copy of the game, in their browser.
 
 on:
   push:
     branches: [main]
     paths:
       - 'docs/**'
+      - 'src/**'
+      - 'CMakeLists.txt'
+      - 'tools/fetch-gasm-sdk.sh'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -28,6 +35,21 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0   # lastUpdated timestamps
+
+      # SDK version: GASM_VERSION in tools/fetch-gasm-sdk.sh (keep @emdzej/gasm-host in docs/package.json in step).
+      - name: fetch wasi-sdk, the gasm C SDK and wasm-opt
+        run: tools/fetch-gasm-sdk.sh
+
+      - name: build openmm.wasm
+        run: |
+          cmake -S . -B build-gasm -DOPENMM_PLATFORM=gasm -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE=.deps/gasm-c-sdk/cmake/gasm-toolchain.cmake -DWASI_SDK_PREFIX="$PWD/.deps/wasi-sdk" \
+            -DGASM_WASM_OPT="$PWD/.deps/binaryen/bin/wasm-opt"
+          cmake --build build-gasm -j
+
+      - name: copy openmm.wasm into the play page
+        run: docs/scripts/copy-wasm.sh build-gasm/openmm.wasm
+
       - uses: pnpm/action-setup@v6
         with:
           version: 10
@@ -42,7 +64,10 @@ jobs:
       - name: build VitePress site
         working-directory: docs
         run: |
+          scripts/vendor-web.sh
           pnpm build
+          test -f .vitepress/dist/play/openmm.wasm
+          test -f .vitepress/dist/play/vendor/gasm/gasm-worker.js
           test -f .vitepress/dist/CNAME
       - uses: actions/configure-pages@v6
       - name: upload artifact

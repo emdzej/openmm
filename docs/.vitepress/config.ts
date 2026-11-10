@@ -25,6 +25,9 @@ export default defineConfig({
     ["meta", { property: "og:url", content: "https://openmm.emdzej.pl/" }],
   ],
 
+  // The browser player is a static page in public/play/, not a Markdown page.
+  ignoreDeadLinks: [/^\/play\//],
+
   themeConfig: {
     siteTitle: "OpenMM",
     logo: "/favicon.svg",
@@ -32,6 +35,8 @@ export default defineConfig({
     nav: [
       { text: "Guide", link: "/guide/", activeMatch: "/guide/" },
       { text: "How-tos", link: "/howto/build", activeMatch: "/howto/" },
+      // A static app in docs/public/play/: target _self makes it a full page load, not a VitePress route.
+      { text: "Play", link: "/play/", target: "_self" },
       { text: "ENCORE", link: "https://encore.emdzej.pl" },
     ],
 

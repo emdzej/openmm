@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Play | OpenMM</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Run Micro Machines (1994, DOS) in your browser with OpenMM, using your own copy of the game.">
+<meta name="theme-color" content="#1b5f2e">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="play.css">
+<script type="importmap">
+{ "imports": {
+  "@emdzej/csfs-core": "./vendor/csfs/core/index.js",
+  "@emdzej/csfs-fsa": "./vendor/csfs/fsa/index.js",
+  "@emdzej/csfs-opfs": "./vendor/csfs/opfs/index.js"
+} }
+</script>
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="/"><img src="/favicon.svg" alt="" width="28" height="28"> OpenMM</a>
+  <nav>
+    <a href="/guide/">Guide</a>
+    <a href="/guide/status">Status</a>
+    <a href="/play/" aria-current="page">Play</a>
+    <a href="https://github.com/emdzej/openmm">GitHub</a>
+  </nav>
+</header>
+
+<main>
+  <section id="setup">
+    <h1>Micro Machines in your browser</h1>
+    <p class="lead">OpenMM runs here as <code>openmm.wasm</code> on the
+      <a href="https://gasm.emdzej.pl">gasm</a> runtime: the same module as on the desktop, a port of the
+      original program's code, reading the tracks, the vehicles, the pictures and the music from
+      <strong>your own copy of Micro Machines</strong>. Nothing from the game is on this site, and
+      nothing you pick leaves your computer.</p>
+    <p class="lead small">A work in progress: the menus, one- and two-player races and the sound run
+      and are being checked against the original. See <a href="/guide/status">Status</a>.</p>
+
+    <div class="cols">
+      <div class="card">
+        <h2>What you need</h2>
+        <ul>
+          <li><strong>Micro Machines</strong> for DOS (Codemasters, 1994), the 720 KB floppy release (the
+            program <code>MICRO.EXE</code>, 28,955 bytes): an image of the floppy (<code>.img</code>), or
+            its files copied to a folder, or the installed game's folder. See
+            <a href="/guide/game-data">Game data</a>.</li>
+          <li>A browser with WebAssembly and Web Workers: a recent Chrome, Edge, Firefox or Safari.</li>
+          <li>Under 1 MB of browser storage to import the floppy (once; later visits start at once), or
+            none to play without importing.</li>
+          <li>A keyboard.</li>
+        </ul>
+      </div>
+      <div class="card" id="choose">
+        <h2 id="choose-title">Choose your floppy</h2>
+        <div id="imported" hidden>
+          <p><strong>Imported:</strong> <span id="imported-desc"></span></p>
+          <div class="row">
+            <button id="play-opfs" class="primary">Play</button>
+            <button id="remove">Remove the imported floppy</button>
+          </div>
+          <p class="small" id="storage"></p>
+          <p class="small" id="persist-row" hidden>The browser may clear site data when disk space runs low.
+            <button id="persist" class="link">Keep it</button></p>
+          <p class="small">Or choose the floppy again below to replace it.</p>
+        </div>
+        <div class="row">
+          <button id="pick-image" class="primary">Choose the floppy image</button>
+          <button id="pick-folder">Choose a folder</button>
+        </div>
+        <p class="small">The image is the whole 720 KB disk (FAT12). A folder holds its files
+          (<code>MICRO.COM</code>, <code>MICRO.EXE</code>, <code>SM.EXE</code>, <code>GAME1</code>, ...), or
+          is the folder the game was installed to.</p>
+        <input id="folder-input" type="file" webkitdirectory multiple hidden>
+        <input id="image-input" type="file" accept=".img,.ima,.IMG,.IMA" hidden>
+
+        <div id="check" hidden>
+          <ul id="check-list" class="checks"></ul>
+          <div class="row" id="check-actions">
+            <button id="import" class="primary">Import and play</button>
+            <button id="play-direct">Play without importing</button>
+          </div>
+          <p class="small">Importing copies what you picked into this site's private browser storage
+            (OPFS). Playing without importing reads it from where it is, which you'll need to pick again
+            next time.</p>
+        </div>
+
+        <div id="progress" hidden>
+          <progress id="progress-bar" max="1" value="0"></progress>
+          <p class="small" id="progress-text"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="options">
+      <h2>Options</h2>
+      <p class="small">The default is the original's start, with one exception: the original asks for a
+        symbol from the code card that came in the box before it starts, and OpenMM skips that unless you
+        ask for it here. Each option is one of the game's parameters (see <a href="/guide/status">Status</a>).</p>
+      <div class="row">
+        <label><input id="opt-codecard" type="checkbox"> ask for the code card</label>
+        <label><input id="opt-splash" type="checkbox"> the Codemasters splash screen</label>
+      </div>
+    </div>
+  </section>
+
+  <section id="game" hidden>
+    <div id="stage" class="stage">
+      <canvas id="screen" width="320" height="200" aria-label="Micro Machines" tabindex="0"></canvas>
+    </div>
+    <div class="toolbar">
+      <button id="fullscreen">Fullscreen</button>
+      <button id="sound">Sound: on</button>
+      <button id="stop">Stop</button>
+      <span id="view-controls">
+        <select id="filter" aria-label="Scaling" title="How the picture is scaled up: sharp = even pixels at any size, nearest = plain pixel doubling, xbr = smooth edges, fsr = AMD FSR 1, crt = scanlines"></select>
+        <label class="small" title="Scale by whole multiples only (black border around)"><input id="integer" type="checkbox"> integer</label>
+      </span>
+      <span id="status" class="small"></span>
+    </div>
+  </section>
+
+  <p id="message" class="message" role="status" hidden></p>
+
+  <section id="controls">
+    <h2>Controls</h2>
+    <p>The game reads the keyboard as the original did. On GAME OPTIONS, <kbd>F1</kbd>-<kbd>F6</kbd>
+      change the controls, the sound and the smoothness, redefine the keys and show the credits;
+      <kbd>Enter</kbd> plays, <kbd>Esc</kbd> quits. The default keys: player 1
+      <kbd>&larr;</kbd> <kbd>&rarr;</kbd> steer, <kbd>&uarr;</kbd> accelerates, <kbd>&darr;</kbd> brakes,
+      <kbd>Enter</kbd> selects; player 2 <kbd>Z</kbd> <kbd>X</kbd> steer, <kbd>F</kbd> accelerates,
+      <kbd>C</kbd> brakes, <kbd>G</kbd> selects. In a race <kbd>Space</kbd> pauses and <kbd>Esc</kbd>
+      leaves the race. Choose SPEAKER or BLASTER (the AdLib) with <kbd>F3</kbd> for sound.</p>
+    <p class="small">Holding <kbd>Esc</kbd> for a second stops the game. In fullscreen the browser takes
+      <kbd>Esc</kbd> to leave fullscreen. The settings (<code>SETTINGS.DAT</code>) are kept in this
+      browser.</p>
+  </section>
+</main>
+
+<footer class="foot"><p class="powered">Powered by <a href="https://gasm.emdzej.pl"><img src="https://gasm.emdzej.pl/badge/built-for-gasm-light.svg" alt="Built for gasm" width="120" height="44"></a></p>
+  OpenMM is released under the GPL-3.0. Micro Machines is &copy; 1994 Codemasters. OpenMM contains no
+  original code or assets and is not affiliated with Codemasters: it runs the game from your own copy.</footer>
+
+<script type="module" src="play.js"></script>
+</body>
+</html>

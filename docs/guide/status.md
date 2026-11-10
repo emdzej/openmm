@@ -23,6 +23,11 @@ OpenMM **runs the game's menus and races, with sound**. As of 10 November 2026:
   by picture: a two-player game and a one-player qualifying race give the original's pictures in the
   original's order, apart from differences traced to the reference emulator's timing.
 
+## In the browser
+
+The [play page](/play/) runs the same module in the browser, from your own floppy image or its files,
+with the options below as settings.
+
 ## Opt-in
 
 - **The code card.** The original asks for a symbol from its code card before it starts. The check is
@@ -33,7 +38,9 @@ OpenMM **runs the game's menus and races, with sound**. As of 10 November 2026:
 
 - Championships and every track theme still need checking against the original.
 - The AdLib model is the port's own; it has not yet been compared with a real chip's recordings.
-- There are no releases and no browser player yet.
+- **The joystick.** The PC game port is not modelled yet: the game finds no joystick, so only the
+  keyboard plays (a gamepad as the joystick is to come).
+- There are no releases yet.
 
 The [port plan](https://github.com/emdzej/openmm/blob/main/docs/re/port-plan.md) lists the steps and the
 check that ends each one.

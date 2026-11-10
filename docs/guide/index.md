@@ -18,4 +18,6 @@ It is the first DOS game in [ENCORE](https://encore.emdzej.pl), and the first in
 The original program is compressed with PKLITE, so before anything else the port runs PKLITE's own
 loader on your file, the same steps the program takes at start-up, and checks the result.
 
-The project is at its very beginning: see the [status](./status).
+The game runs from its start through the menus into one- and two-player races, with sound, and is being
+checked against the original: see the [status](./status). It plays in the browser on the
+[play page](/play/), from your own copy.

@@ -1,0 +1,100 @@
+/* The play page's theme, the site's (docs/.vitepress/theme/mm.css): the box's cover redrawn. Cream card
+   stock with purple-black ink, the navigation bar the pool table's green cushion with the logo's yellow
+   and purple stripes under it, the felt's blue for links, purple headings with a yellow shadow. */
+:root {
+  --paper: #fbf6e4;
+  --paper-2: #f3ecd2;
+  --ink: #1b1024;
+  --ink-2: #4a3d55;
+  --blue: #1d5fa8;
+  --blue-dark: #164c88;
+  --yellow: #fbf214;
+  --orange: #3f97da;
+  --red: #d22a1b;
+  --purple: #421057;
+  --line: rgba(42, 10, 60, 0.18);
+  --ok: #1b6b2e;
+  --warn: #8a5300;
+  --bad: #b3200c;
+  --font: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --display: "Arial Black", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sunset: linear-gradient(180deg, #3f865d 0%, #1b5f2e 100%);
+  --stripe: linear-gradient(var(--yellow), var(--yellow)) 0 0 / 100% 5px no-repeat,
+            linear-gradient(var(--purple), var(--purple)) 0 5px / 100% 4px no-repeat;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; color: var(--ink); font: 15px/1.6 var(--font); background: var(--paper); }
+a { color: var(--blue); text-decoration: underline; text-decoration-color: rgba(29, 79, 174, 0.35); text-underline-offset: 3px; }
+a:hover { color: var(--blue-dark); text-decoration-color: currentColor; }
+code { font-family: var(--mono); font-size: .88em; background: var(--paper-2); padding: .1em .35em; border-radius: 3px; }
+kbd { display: inline-block; min-width: 1.6em; padding: 0 6px; border: 1px solid var(--ink); border-bottom-width: 3px;
+  border-radius: 3px; background: #fff; font-family: var(--mono); font-size: .85em; line-height: 1.6; text-align: center; }
+/* The logo's lettering: heavy, italic, a hard black shadow. */
+h1 { font: italic 900 2.3rem/1.15 var(--display); margin: 1.8rem 0 .6rem; letter-spacing: -0.01em; color: var(--purple);
+  text-shadow: 2px 2px 0 var(--yellow); }
+h2 { font: italic 900 1.15rem/1.3 var(--display); margin: 0 0 .6rem; text-transform: uppercase; letter-spacing: .01em; }
+.small { font-size: .85rem; color: var(--ink-2); }
+
+.bar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 0 24px; height: 64px; background: var(--sunset); }
+.bar::after { content: ""; position: absolute; left: 0; right: 0; bottom: -10px; height: 10px; background: var(--stripe); pointer-events: none; }
+.brand { display: flex; align-items: center; gap: .55rem; color: #fff; font: italic 900 22px/1 var(--display); text-decoration: none;
+  text-shadow: 2px 2px 0 var(--purple); }
+.bar nav { display: flex; font-size: 15px; font-weight: 700; }
+.bar nav a { color: #fff; text-decoration: none; padding: 0 12px; text-shadow: 1px 1px 0 rgba(0, 0, 0, .35); }
+.bar nav a:hover { color: var(--yellow); }
+.bar nav a[aria-current] { color: var(--yellow); }
+
+main { max-width: 1100px; margin: 0 auto; padding: 1.2rem 24px 2rem; }
+.lead { max-width: 820px; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; margin: 1.4rem 0; }
+.card { background: #fff; border: 2px solid var(--ink); border-radius: 6px; padding: 16px 20px; box-shadow: 4px 4px 0 var(--orange); }
+.card ul { padding-left: 1.2rem; margin: .4rem 0; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: .7rem 0; }
+#options { margin: 0 0 1.4rem; }
+#options label { display: inline-flex; gap: 6px; align-items: center; margin-right: 14px; }
+
+button { font: 700 14px var(--font); padding: 8px 14px; border-radius: 4px; border: 2px solid var(--ink); background: #fff;
+  color: var(--ink); cursor: pointer; }
+button:hover:not(:disabled) { background: var(--paper-2); }
+button.primary { background: var(--yellow); box-shadow: 2px 2px 0 var(--ink); }
+button.primary:hover:not(:disabled) { background: #ffe94f; }
+button:disabled { opacity: .5; cursor: default; }
+button.link { border: 0; background: none; padding: 0; color: var(--blue); text-decoration: underline; font-weight: 400; }
+
+.checks { list-style: none; padding: 0; margin: .6rem 0; }
+.checks li { padding-left: 1.4rem; position: relative; margin: .2rem 0; }
+.checks li::before { position: absolute; left: 0; font-weight: 700; }
+.checks li.ok::before { content: "\2713"; color: var(--ok); }
+.checks li.bad::before { content: "\2715"; color: var(--bad); }
+progress { width: 100%; height: 12px; accent-color: var(--orange); }
+
+.stage { position: relative; width: 100%; aspect-ratio: 4 / 3; max-height: calc(100vh - 160px); margin: 1rem auto 0; background: #000;
+  border: 2px solid var(--ink); border-radius: 4px; overflow: hidden; }
+.stage:fullscreen { max-height: none; border: 0; border-radius: 0; }
+#screen { display: block; width: 100%; height: 100%; image-rendering: pixelated; outline: none; }
+#screen.gl { image-rendering: auto; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: .7rem 0; }
+.toolbar select { font: 14px var(--font); padding: 6px; border: 2px solid var(--ink); border-radius: 4px; background: #fff; }
+
+.message { max-width: 1100px; margin: 1rem auto; padding: 10px 14px; border-radius: 4px; border: 2px solid var(--ink); background: #fff; }
+.message.warn { background: #fff3cf; }
+.message.error { background: #ffe1da; border-color: var(--bad); color: var(--bad); }
+#controls { margin-top: 2rem; border-top: 2px solid var(--line); padding-top: 1rem; }
+
+.foot { max-width: 1100px; margin: 2rem auto; padding: 1rem 24px 2rem; font-size: .8rem; color: var(--ink-2); border-top: 2px solid var(--line); }
+.powered { margin: 0 0 .6rem; }
+
+@media (prefers-color-scheme: dark) {
+  :root { --paper: #1d0a29; --paper-2: #2c1340; --ink: #f6f0de; --ink-2: #cfc4d6; --blue: #8cc4f0; --blue-dark: #bfe0fa;
+    --line: rgba(244, 239, 226, 0.2); --ok: #7fd18e; --warn: #ffc66b; --bad: #ff8a73; }
+  h1 { color: var(--yellow); text-shadow: 3px 3px 0 #000; }
+  .card { background: #2a1239; border-color: #000; box-shadow: 4px 4px 0 var(--orange); }
+  button { background: #2c1340; color: var(--ink); border-color: #000; }
+  button.primary { color: #1b1024; box-shadow: 2px 2px 0 #000; }
+  .toolbar select, .message { background: #2a1239; color: var(--ink); border-color: #000; }
+  .message.error { background: #3a1610; }
+  .message.warn { background: #3a2a0c; }
+  kbd { background: #2c1340; border-color: #000; }
+}

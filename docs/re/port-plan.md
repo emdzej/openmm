@@ -13,7 +13,7 @@ notes in docs/re/ and docs/formats/ say what was learnt. Addresses: seg:off with
 | 5 | **The race.** Track loading, the camera and scrolling, the vehicles' handling and collisions, the computer drivers, the rules (laps, the screen edge in two-player), the HUD. | per subsystem: differential runs against the emulator from the same state; a race plays to its end headless with scripted input |
 | 6 | **The game's structure.** Championship, qualifying, bonus races, time trials, head-to-head, the cheats. | a championship plays through headless |
 | 7 | **Sound.** The sound driver (`DRIVER1.BIN`, `DRIVER2.BIN`) ported, an OPL2 model and the speaker into the gasm audio stream. Which OPL2 model (written here, or a permissively licensed one vendored with credit) is the user's decision. | `audio_fnv32` stable; the driver's register writes equal the emulator's for the same calls |
-| 8 | **Browser player.** `docs/public/play/` from the siblings, the floppy image or folder from the player's own copy. | `tools/web-play-test.mjs` |
+| 8 | **Browser player** (done 2026-11-10). `docs/public/play/` from the siblings, the floppy image or folder from the player's own copy. | `tools/web-play-test.mjs` |
 | 9 | **Site and release.** Status, game data, playing; bundles in CI. Tags only when the user asks. | `pnpm build` with no dead links; bundle smoke tests |
 | 10 | **Theory of operation.** `docs/guide/theory.md`: how Micro Machines was designed and how it works, in prose. | the encore-theory-of-operation checklist |
 
