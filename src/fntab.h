@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef struct {
+typedef struct FnEntry_ {
     uint32_t addr;   /* seg:off packed 0xSSSSOOOO */
     const char *name;
     void (*fn)(void);

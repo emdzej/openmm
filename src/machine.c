@@ -205,10 +205,18 @@ static void bios_handler(uint8_t n)
     if (n == 8 || n == 9) pic.in_service = false;
 }
 
+static const FnEntry *prog_tab;   /* the running program's routines, if not MICRO.EXE's (names.tsv) */
+static int prog_n;
+void mach_set_program(const FnEntry *tab, int n) { prog_tab = tab, prog_n = n; }
+
 void mach_call_far(uint16_t seg, uint16_t off)
 {
     if (seg == BIOS_SEG && off < 256) { bios_handler((uint8_t)off); return; }
-    const FnEntry *e = fntab_find((uint32_t)seg << 16 | off);
+    uint32_t a = (uint32_t)seg << 16 | off;
+    const FnEntry *e = NULL;
+    for (int i = 0; prog_tab && i < prog_n; i++)
+        if (prog_tab[i].addr == a) e = &prog_tab[i];
+    if (!prog_tab) e = fntab_find(a);
     if (e) { e->fn(); return; }
     char m[80];
     snprintf(m, sizeof m, "machine: far call to %04x:%04x, no routine there", seg, off);

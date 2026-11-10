@@ -238,6 +238,11 @@ class Machine:
         ss, sp, _csum, ip, cs, reloff = struct.unpack_from('<HHHHHH', d, 14)
         size = blocks * 512 - (512 - last if last else 0)
         img = bytearray(d[hdr * 16:size])
+        # DOS's memory: the program's block from the PSP, its image and up to maxalloc paragraphs more
+        # (FFFFh: all of it, as MICRO.EXE asks); int 21h 48h allocates above it, up to A000
+        minalloc, maxalloc = struct.unpack_from('<HH', d, 10)
+        want = LOAD_SEG + (len(img) + 15) // 16 + maxalloc
+        self.mem_free = min(want, 0xA000) if maxalloc != 0xffff else 0xA000
         for i in range(nrel):
             off, seg = struct.unpack_from('<HH', d, reloff + 4 * i)
             p = seg * 16 + off
@@ -519,6 +524,8 @@ class Machine:
             if not al & 0x80:
                 for p in v.planes:
                     p[:] = bytes(65536)
+        elif ah == 0x1a and al == 0:                  # the display combination: a VGA, colour
+            self.w('AX', (self.r('AX') & 0xff00) | 0x1a), self.w('BX', 0x0008)
         elif ah == 0x0f:
             self.w('AX', 40 << 8 | self.video_mode if self.video_mode == 0x13 else 80 << 8 | self.video_mode)
             self.w('BX', self.r('BX') & 0xff)
@@ -678,7 +685,14 @@ class Machine:
         elif ah == 0x4a:
             self.set_cf(False)
         elif ah == 0x48:
-            self.w('AX', 8), self.w('BX', 0), self.set_cf(True)
+            n = self.r('BX')
+            if self.mem_free + n <= 0xA000:
+                self.w('AX', self.mem_free), self.set_cf(False)
+                self.mem_free += n
+            else:
+                self.w('AX', 8), self.w('BX', 0xA000 - self.mem_free), self.set_cf(True)
+        elif ah == 0x49:
+            self.set_cf(False)
         elif ah == 0x4c:
             self.exit_code = al
             self.mu.emu_stop()

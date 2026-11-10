@@ -28,9 +28,10 @@ void mach_drv(void);        /* call far 2424:0000: the sound driver (or FONT.BIN
    BIOS's handlers at F000:n, or a routine of names.tsv. */
 void mach_call_far(uint16_t seg, uint16_t off);
 
-typedef void (*IrqFn)(void);
-/* The ported handlers, by the address the original installs (seg:off packed 0xSSSSOOOO). */
-void mach_register_handler(uint32_t addr, IrqFn fn);
+/* The routines a vector may point at while another program than MICRO.EXE runs (SM.EXE: its IRQ 1
+   handler); NULL: MICRO.EXE's (fntab.h). */
+struct FnEntry_;
+void mach_set_program(const struct FnEntry_ *tab, int n);
 
 /* ---- time ---- */
 void mach_frame(void);

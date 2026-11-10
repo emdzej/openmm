@@ -63,6 +63,11 @@ static inline void c16w(uint16_t off, uint16_t v) { mww(SEG_CODE, off, v); }
    PSP:005C), the environment, the BIOS data area (mode 3, the CRTC at 3D4h, the tick count). False if
    the exe is not loaded. */
 bool mem_load_program(void);
+/* The parts: the memory as the BIOS leaves it (all zero but the BIOS data area), and a program placed at
+   1000:0000 with its relocations and its PSP (as DOS's EXEC does; the rest of memory is left as the
+   previous program left it). MICRO.EXE's own PKLITE stub also leaves "PK" at PSP:005C. */
+void mem_init_machine(void);
+void mem_place_image(const uint8_t *img, size_t n, const uint32_t *reloc, int nreloc, const char *name);
 /* A file's bytes into memory at seg:off (the overlays, the data files read whole). */
 void mem_write(uint16_t seg, uint16_t off, const void *src, size_t len);
 void mem_read(uint16_t seg, uint16_t off, void *dst, size_t len);

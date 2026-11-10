@@ -27,6 +27,18 @@ typedef struct {
 } DosFile;
 
 static DosFile files[NFILES];
+static uint16_t mem_free = 0xa000;   /* the first paragraph above the running program's block */
+static bool exited;
+static uint8_t exit_code;
+
+void dos_set_program_end(uint16_t seg) { mem_free = seg; }
+bool dos_exited(uint8_t *code)
+{
+    if (code) *code = exit_code;
+    bool e = exited;
+    exited = false;
+    return e;
+}
 static char cwd[PATH_MAX_];   /* relative to the data root, '/'-separated, upper case */
 static uint16_t dta_seg, dta_off;
 
@@ -300,11 +312,15 @@ void dos_int21(void)
         break;
     }
     case 0x4a: R.cf = false; break;
-    case 0x48: R.ax = 8, R.bx = 0, R.cf = true; break;   /* no memory beyond the program's */
-    case 0x4c:
+    case 0x48:   /* above the program's block, as the harness: MICRO.EXE asks for all memory, SM.EXE not */
+        if ((uint32_t)mem_free + R.bx <= 0xa000) R.ax = mem_free, mem_free = (uint16_t)(mem_free + R.bx), R.cf = false;
+        else R.ax = 8, R.bx = (uint16_t)(0xa000 - mem_free), R.cf = true;
+        break;
+    case 0x49: R.cf = false; break;
+    case 0x4c:   /* the program ends: its ported code returns from here to the launcher (launcher.c) */
         for (int i = 0; i < NFILES; i++)
             if (files[i].open) flush(&files[i]);
-        plat_exit(al);
+        exited = true, exit_code = al;
         break;
     case 0x4e: {
         char pat[PATH_MAX_], rel[PATH_MAX_], dir[PATH_MAX_];

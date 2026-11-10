@@ -4,7 +4,7 @@
      build/mm_run [--data game] [--frames 300] [--keys 120:1c,124:9c] [--hashes] [--dump 100,200]
                   [--shot 100] [--out out/run]
    --keys: frame:scancode in hex (80h set = release, 100h = the E0 prefix); --hashes: one line per frame,
-   "frame fnv32"; --dump: out/run/mem_<frame>.bin; --shot: a PPM of the port's frame; --wav: the sound,
+   "frame fnv32"; --param name=value as gasm's (splash=0: no SM.EXE, codecard=1); --dump: out/run/mem_<frame>.bin; --shot: a PPM of the port's frame; --wav: the sound,
    44.1 kHz 16-bit stereo. The game's settings (SETTINGS.DAT, as the user's storage) are read from
    <out>/writes/ first, so a run can choose the sound device. */
 #include "app.h"
@@ -41,7 +41,18 @@ void plat_log(const char *msg) { printf("%s\n", msg); }
 double plat_ms(void) { return frame * (1000.0 / APP_FRAME_HZ); }
 uint32_t plat_pad(int player) { return 0; }
 bool plat_gamepad(int slot, PlatGamepad *g) { memset(g, 0, sizeof *g); return false; }
-bool plat_param(const char *name, char *dst, size_t cap) { return false; }
+static const char *params[16];
+static int nparams;
+bool plat_param(const char *name, char *dst, size_t cap)
+{
+    size_t n = strlen(name);
+    for (int i = 0; i < nparams; i++)
+        if (!strncmp(params[i], name, n) && params[i][n] == '=') {
+            snprintf(dst, cap, "%s", params[i] + n + 1);
+            return true;
+        }
+    return false;
+}
 void plat_set_frame_rate(double hz) {}
 uint8_t *plat_load_user_file(const char *name, size_t *size)
 {
@@ -165,6 +176,7 @@ int main(int argc, char **argv)
         if (!strcmp(a, "--data") && v) data = v, i++;
         else if (!strcmp(a, "--frames") && v) frames_max = atoi(v), i++;
         else if (!strcmp(a, "--hashes")) hashes = true;
+        else if (!strcmp(a, "--param") && v && nparams < 16) params[nparams++] = v, i++;
         else if (!strcmp(a, "--dump") && v) ndumps = list(v, dumps, 64), i++;
         else if (!strcmp(a, "--shot") && v) nshots = list(v, shots, 64), i++;
         else if (!strcmp(a, "--out") && v) out_dir = v, i++;

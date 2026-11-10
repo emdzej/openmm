@@ -15,6 +15,23 @@ import dos  # noqa: E402
 import unicorn  # noqa: E402
 
 
+def fnv(h, data):
+    for c in data:
+        h = ((h ^ c) * 16777619) & 0xffffffff
+    return h
+
+
+def picture_hash(m):
+    """As tools/run.c: FNV-1a over the 320 x 200 indices (mode 13h, else zeros) then the DAC widened."""
+    if m.video_mode == 0x13:
+        p = m.planes()
+        px = bytes(p[i & 3][i >> 2] for i in range(64000))
+    else:
+        px = bytes(64000)
+    pal = bytes(((c << 2) | (c >> 4)) & 0xff for c in m.dac)
+    return fnv(fnv(2166136261, px), pal)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--exe', default='MICRO.EXE')
@@ -27,6 +44,8 @@ def main():
     ap.add_argument('--code-card', action='store_true', help="answer FONT.BIN's check (reference runs only)")
     ap.add_argument('--skip-card', action='store_true', help="don't run FONT.BIN: its pass at once (reference runs only)")
     ap.add_argument('--out', default='out/emu')
+    ap.add_argument('--hashes', action='store_true',
+                    help="each frame's picture hashed as build/mm_run --hashes does (mode 13h: indices, DAC)")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     logs = []
@@ -50,6 +69,8 @@ def main():
         for frame in range(a.frames):
             m.key_queue.extend(keys.get(frame, []))
             m.step(per_frame)
+            if a.hashes:
+                print('%d %08x' % (frame, picture_hash(m)), flush=True)
             if a.shots and (frame + 1) % a.shots == 0 and m.video_mode in (0x0d, 0x10, 0x12, 0x13):
                 dos.write_png(os.path.join(a.out, 'f%05d.png' % (frame + 1)), *m.frame())
     except dos.Exit as e:

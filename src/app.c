@@ -1,12 +1,12 @@
-/* The application (app.h): the exe found, checked and unpacked, then loaded as DOS loads it (mem.c), the
-   machine reset (machine.c) and the program run from its entry, Start (1000:0006). MICRO.COM's order
-   (SM.EXE first) comes with step 4 of docs/re/port-plan.md. */
+/* The application (app.h): the exe found, checked and unpacked, then MICRO.COM's order run
+   (launcher.c): SM.EXE's splash, then MICRO.EXE from its entry, Start (1000:0006). */
 #include "app.h"
 #include "cpu.h"
 #include "exe.h"
 #include "machine.h"
 #include "mem.h"
 #include "platform.h"
+#include "launcher.h"
 #include "routines.h"
 #include "sound/sound.h"
 #include <stdio.h>
@@ -29,14 +29,9 @@ bool app_init(void)
 
 int app_main(void)
 {
-    mem_load_program();
-    mach_reset();
-    const ExeEntry *e = exe_entry();
-    memset(&R, 0, sizeof R);
-    R.ds = R.es = SEG_PSP, R.ss = e->ss, R.sp = e->sp;
-    Start();
-    plat_exit(0);   /* not reached: the program ends through int 21h 4Ch */
-    return 0;
+    int code = Launcher_Main();
+    plat_exit(code);
+    return code;
 }
 
 /* A frame of sound: the AdLib and the speaker as the drivers left them during the frame (sound.h). */
