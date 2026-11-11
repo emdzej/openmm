@@ -1,6 +1,6 @@
 # Status
 
-OpenMM **runs the game's menus and races, with sound**. As of 10 November 2026:
+OpenMM **plays the whole game, with sound**. As of 11 November 2026:
 
 ## What works
 
@@ -13,7 +13,9 @@ OpenMM **runs the game's menus and races, with sound**. As of 10 November 2026:
   screens, the game options, the one- and two-player menus, the character picker, the race set-up and
   track loading, the vehicles, the computer drivers, the terrain, the race loop and its rules. In a
   headless run the port plays a whole one-player championship, from the qualifier through the
-  challenge races, the bonus races and the results to CHAMPIONSHIP WINNER, and two-player races.
+  challenge races, the bonus races and the results to CHAMPIONSHIP WINNER, and two-player races and
+  tournaments. Fourteen routines of the program are left unported: none of them is ever called, or
+  each is a label inside another routine, so the game never reaches them.
 - **Sound.** The game's two sound drivers, for the Sound Blaster's AdLib chip and for the PC speaker,
   are rewritten too. They drive a model of the AdLib's sound chip written for the port, and a model of
   the speaker. The music and effects the drivers send to the chip match the original's, write for write.

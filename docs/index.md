@@ -7,7 +7,7 @@ hero:
   image:
     src: /hero.svg
     alt: "Two toy Formula One cars racing across a pool table between pool balls, playing cards and a cube of chalk, under the OpenMM wordmark"
-  tagline: "A faithful reimplementation of Micro Machines (Codemasters, 1994) for DOS, in C11, ported function by function from the original program. It will run the game from your own floppy, as one WebAssembly module for the gasm runtime, natively and in the browser. Groundwork: the program is read and unpacked; the game does not run yet."
+  tagline: "A faithful reimplementation of Micro Machines (Codemasters, 1994) for DOS, in C11, ported function by function from the original program. It runs the whole game from your own floppy, as one WebAssembly module for the gasm runtime, natively and in the browser, and is checked against the original routine by routine and picture by picture."
   actions:
     - theme: brand
       text: Status

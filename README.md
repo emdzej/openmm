@@ -7,9 +7,12 @@ Windows, and in the browser.
 
 [![Built for gasm](https://gasm.emdzej.pl/badge/built-for-gasm-flat.svg)](https://gasm.emdzej.pl)
 
-**Status: groundwork.** The file layer reads the floppy image and its files, the program is checked and
-unpacked by the port's own PKLITE loader, and the gasm module starts and shows a blank screen. Nothing of
-the game runs yet; see the [status page](docs/guide/status.md) and the [port plan](docs/re/port-plan.md).
+**Status: the whole game is ported.** Every routine of `MICRO.EXE` that runs is rewritten, with the
+splash screen, the launcher's order and both sound drivers. The port plays from the splash through the
+menus, a whole one-player championship and two-player races and tournaments, natively and on the
+[play page](https://openmm.emdzej.pl/play/), and is checked against the original running in an x86
+emulator, routine by routine and picture by picture. No release yet; see the
+[status page](docs/guide/status.md) and the [port plan](docs/re/port-plan.md).
 
 - [What is on the disk](docs/re/inventory.md), [architecture](docs/re/architecture.md),
   [port plan](docs/re/port-plan.md)
